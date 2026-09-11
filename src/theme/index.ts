@@ -1,0 +1,140 @@
+import { MD3DarkTheme, MD3LightTheme, configureFonts } from 'react-native-paper';
+
+export const palette = {
+  navy: {
+    50: '#EEF2FA',
+    100: '#D6DEF2',
+    200: '#ADBDE4',
+    300: '#7F98D2',
+    400: '#5474BE',
+    500: '#3455A3',
+    600: '#264184',
+    700: '#1B3068',
+    800: '#122250',
+    900: '#0B173A',
+    950: '#060D24',
+  },
+  gold: {
+    100: '#FBF1D6',
+    300: '#F0D18A',
+    500: '#D9A93F',
+    600: '#B98A2A',
+    700: '#8F6A1F',
+  },
+  slate: {
+    50: '#F8FAFC',
+    100: '#F1F5F9',
+    200: '#E2E8F0',
+    300: '#CBD5E1',
+    400: '#94A3B8',
+    500: '#64748B',
+    600: '#475569',
+    700: '#334155',
+    800: '#1E293B',
+    900: '#0F172A',
+    950: '#020617',
+  },
+  success: '#0F9D6E',
+  warning: '#D97706',
+  info: '#0284C7',
+  danger: '#DC2626',
+  violet: '#6D5BD0',
+};
+
+const fontConfig = {
+  displayLarge: { fontFamily: 'Inter_700Bold', fontSize: 57, lineHeight: 64, letterSpacing: -0.5, fontWeight: '700' as const },
+  displayMedium: { fontFamily: 'Inter_700Bold', fontSize: 45, lineHeight: 52, letterSpacing: -0.5, fontWeight: '700' as const },
+  displaySmall: { fontFamily: 'Inter_700Bold', fontSize: 36, lineHeight: 44, letterSpacing: -0.5, fontWeight: '700' as const },
+  headlineLarge: { fontFamily: 'Inter_700Bold', fontSize: 32, lineHeight: 40, letterSpacing: -0.5, fontWeight: '700' as const },
+  headlineMedium: { fontFamily: 'Inter_700Bold', fontSize: 28, lineHeight: 36, letterSpacing: -0.25, fontWeight: '700' as const },
+  headlineSmall: { fontFamily: 'Inter_700Bold', fontSize: 24, lineHeight: 32, letterSpacing: -0.25, fontWeight: '700' as const },
+  titleLarge: { fontFamily: 'Inter_600SemiBold', fontSize: 22, lineHeight: 28, letterSpacing: 0, fontWeight: '600' as const },
+  titleMedium: { fontFamily: 'Inter_600SemiBold', fontSize: 16, lineHeight: 24, letterSpacing: 0.1, fontWeight: '600' as const },
+  titleSmall: { fontFamily: 'Inter_600SemiBold', fontSize: 14, lineHeight: 20, letterSpacing: 0.1, fontWeight: '600' as const },
+  labelLarge: { fontFamily: 'Inter_600SemiBold', fontSize: 14, lineHeight: 20, letterSpacing: 0.1, fontWeight: '600' as const },
+  labelMedium: { fontFamily: 'Inter_500Medium', fontSize: 12, lineHeight: 16, letterSpacing: 0.5, fontWeight: '500' as const },
+  labelSmall: { fontFamily: 'Inter_500Medium', fontSize: 11, lineHeight: 16, letterSpacing: 0.5, fontWeight: '500' as const },
+  bodyLarge: { fontFamily: 'Inter_400Regular', fontSize: 16, lineHeight: 24, letterSpacing: 0.15, fontWeight: '400' as const },
+  bodyMedium: { fontFamily: 'Inter_400Regular', fontSize: 14, lineHeight: 20, letterSpacing: 0.25, fontWeight: '400' as const },
+  bodySmall: { fontFamily: 'Inter_400Regular', fontSize: 12, lineHeight: 16, letterSpacing: 0.4, fontWeight: '400' as const },
+  default: { fontFamily: 'Inter_400Regular', fontWeight: '400' as const, letterSpacing: 0 },
+};
+
+const fonts = configureFonts({ config: fontConfig });
+
+export const lightTheme = {
+  ...MD3LightTheme,
+  roundness: 14,
+  fonts,
+  colors: {
+    ...MD3LightTheme.colors,
+    primary: palette.navy[700],
+    onPrimary: '#FFFFFF',
+    primaryContainer: palette.navy[50],
+    onPrimaryContainer: palette.navy[800],
+    secondary: palette.gold[500],
+    onSecondary: palette.navy[900],
+    secondaryContainer: palette.gold[100],
+    onSecondaryContainer: palette.gold[700],
+    tertiary: palette.success,
+    surface: '#FFFFFF',
+    surfaceVariant: palette.slate[100],
+    onSurface: palette.slate[900],
+    onSurfaceVariant: palette.slate[500],
+    outline: palette.slate[200],
+    outlineVariant: palette.slate[200],
+    background: palette.slate[50],
+    onBackground: palette.slate[900],
+    error: palette.danger,
+    onError: '#FFFFFF',
+    elevation: {
+      level0: 'transparent',
+      level1: '#FFFFFF',
+      level2: '#FFFFFF',
+      level3: '#FFFFFF',
+      level4: '#FFFFFF',
+      level5: '#FFFFFF',
+    },
+  },
+};
+
+export const darkTheme = {
+  ...MD3DarkTheme,
+  roundness: 14,
+  fonts,
+  colors: {
+    ...MD3DarkTheme.colors,
+    primary: palette.navy[300],
+    onPrimary: palette.navy[950],
+    primaryContainer: palette.navy[800],
+    onPrimaryContainer: palette.navy[50],
+    secondary: palette.gold[300],
+    onSecondary: palette.navy[950],
+    secondaryContainer: palette.gold[700],
+    onSecondaryContainer: palette.gold[100],
+    tertiary: palette.success,
+    surface: palette.slate[900],
+    surfaceVariant: palette.slate[800],
+    onSurface: palette.slate[50],
+    onSurfaceVariant: palette.slate[400],
+    outline: palette.slate[700],
+    outlineVariant: palette.slate[800],
+    background: palette.slate[950],
+    onBackground: palette.slate[50],
+    error: '#F87171',
+    onError: palette.slate[950],
+    elevation: {
+      level0: 'transparent',
+      level1: palette.slate[900],
+      level2: palette.slate[900],
+      level3: palette.slate[800],
+      level4: palette.slate[800],
+      level5: palette.slate[800],
+    },
+  },
+};
+
+export type AppTheme = typeof lightTheme;
+
+export const getTheme = (scheme: 'light' | 'dark') =>
+  scheme === 'dark' ? darkTheme : lightTheme;
