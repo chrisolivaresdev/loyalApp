@@ -1,19 +1,52 @@
 import { useLogin } from '@/hooks/useAuth';
 import { useResponsive } from '@/hooks/useResponsive';
+import { useSettingsStore } from '@/stores/settings';
 import { palette } from '@/theme';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useState } from 'react';
 import { KeyboardAvoidingView, Platform, ScrollView, StyleSheet, View } from 'react-native';
-import { Button, HelperText, Icon, Text, TextInput, useTheme } from 'react-native-paper';
+import { Button, HelperText, Icon, Text, TextInput, TouchableRipple, useTheme } from 'react-native-paper';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-const highlights = [
-  { icon: 'chart-line', text: 'Seguimiento de producción y comisiones en tiempo real' },
-  { icon: 'file-document-multiple-outline', text: 'Cotizaciones, solicitudes y pólizas en un solo lugar' },
-  { icon: 'shield-lock-outline', text: 'Acceso seguro desde web y dispositivos móviles' },
-];
+type Lang = 'es' | 'en';
 
-function BrandPanel() {
+const labels: Record<Lang, { [key: string]: string }> = {
+  es: {
+    brand: 'Portal de Agentes',
+    tagline: 'Toda la información de tu cartera, producción y comisiones, organizada para que vendas más y mejor.',
+    login: 'Iniciar sesión',
+    loginHint: 'Ingresá tus credenciales para acceder a tu panel',
+    username: 'Usuario',
+    password: 'Contraseña',
+    submit: 'Ingresar',
+    error: 'Usuario o contraseña incorrectos',
+    highlights: 'Seguimiento de producción y comisiones en tiempo real;Cotizaciones, solicitudes y pólizas en un solo lugar;Acceso seguro desde web y dispositivos móviles',
+    company: 'Loyal Insurance Group',
+    secure: 'Conexión segura · Tus datos están protegidos',
+  },
+  en: {
+    brand: 'Agent Portal',
+    tagline: 'All your portfolio, production and commission information, organized to help you sell more and better.',
+    login: 'Sign in',
+    loginHint: 'Enter your credentials to access your dashboard',
+    username: 'Username',
+    password: 'Password',
+    submit: 'Sign in',
+    error: 'Invalid username or password',
+    highlights: 'Real-time production and commission tracking;Quotes, applications and policies in one place;Secure access from web and mobile devices',
+    company: 'Loyal Insurance Group',
+    secure: 'Secure connection · Your data is protected',
+  },
+};
+
+const highlights = (lang: Lang) =>
+  labels[lang].highlights.split(';').map((text, i) => ({
+    text,
+    icon: ['chart-line', 'file-document-multiple-outline', 'shield-lock-outline'][i],
+  }));
+
+function BrandPanel({ lang }: { lang: Lang }) {
+  const t = labels[lang];
   return (
     <LinearGradient
       colors={[palette.navy[800], palette.navy[950]]}
@@ -29,13 +62,13 @@ function BrandPanel() {
       </View>
       <View style={{ gap: 12 }}>
         <Text variant="displaySmall" style={{ color: '#FFFFFF' }}>
-          Portal de Agentes
+          {t.brand}
         </Text>
         <Text variant="bodyLarge" style={{ color: palette.navy[200], maxWidth: 420 }}>
-          Toda la información de tu cartera, producción y comisiones, organizada para que vendas más y mejor.
+          {t.tagline}
         </Text>
         <View style={{ gap: 14, marginTop: 20 }}>
-          {highlights.map((h) => (
+          {highlights(lang).map((h) => (
             <View key={h.text} style={styles.highlight}>
               <View style={styles.highlightIcon}>
                 <Icon source={h.icon} size={18} color={palette.gold[300]} />
@@ -61,6 +94,9 @@ export default function LoginScreen() {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [secure, setSecure] = useState(true);
+  const lang = useSettingsStore((s) => s.lang);
+  const setLang = useSettingsStore((s) => s.setLang);
+  const t = labels[lang];
   const login = useLogin();
 
   const onSubmit = () => {
@@ -74,8 +110,8 @@ export default function LoginScreen() {
           <View style={styles.logo}>
             <Icon source="shield-check" size={28} color={palette.navy[900]} />
           </View>
-          <Text variant="headlineSmall" style={{ color: '#FFFFFF' }}>Portal de Agentes</Text>
-          <Text variant="bodyMedium" style={{ color: palette.navy[200] }}>Loyal Insurance Group</Text>
+          <Text variant="headlineSmall" style={{ color: '#FFFFFF' }}>{t.brand}</Text>
+          <Text variant="bodyMedium" style={{ color: palette.navy[200] }}>{t.company}</Text>
         </View>
       )}
 
@@ -85,17 +121,32 @@ export default function LoginScreen() {
           { borderRadius: roundness + 10, backgroundColor: colors.surface, borderColor: colors.outlineVariant },
         ]}
       >
+        <View style={styles.langRow}>
+          <Text variant="labelSmall" style={{ color: colors.onSurfaceVariant }}>{lang.toUpperCase()}</Text>
+          <View style={{ flexDirection: 'row', gap: 6 }}>
+            <TouchableRipple onPress={() => setLang('es')} borderless style={{ borderRadius: roundness - 6 }}>
+              <View style={[styles.langBtn, lang === 'es' && { backgroundColor: colors.primary }]}>
+                <Text variant="labelSmall" style={{ color: lang === 'es' ? colors.onPrimary : colors.onSurface }}>ES</Text>
+              </View>
+            </TouchableRipple>
+            <TouchableRipple onPress={() => setLang('en')} borderless style={{ borderRadius: roundness - 6 }}>
+              <View style={[styles.langBtn, lang === 'en' && { backgroundColor: colors.primary }]}>
+                <Text variant="labelSmall" style={{ color: lang === 'en' ? colors.onPrimary : colors.onSurface }}>EN</Text>
+              </View>
+            </TouchableRipple>
+          </View>
+        </View>
         <View style={{ gap: 4 }}>
-          <Text variant="headlineSmall">Iniciar sesión</Text>
+          <Text variant="headlineSmall">{t.login}</Text>
           <Text variant="bodyMedium" style={{ color: colors.onSurfaceVariant }}>
-            Ingresá tus credenciales para acceder a tu panel
+            {t.loginHint}
           </Text>
         </View>
 
         <View style={{ gap: 12 }}>
           <TextInput
             mode="outlined"
-            label="Usuario"
+            label={t.username}
             value={username}
             onChangeText={setUsername}
             autoCapitalize="none"
@@ -105,7 +156,7 @@ export default function LoginScreen() {
           />
           <TextInput
             mode="outlined"
-            label="Contraseña"
+            label={t.password}
             value={password}
             onChangeText={setPassword}
             secureTextEntry={secure}
@@ -117,7 +168,7 @@ export default function LoginScreen() {
           />
           {login.isError && (
             <HelperText type="error" visible>
-              Usuario o contraseña incorrectos
+              {t.error}
             </HelperText>
           )}
         </View>
@@ -131,13 +182,13 @@ export default function LoginScreen() {
           style={{ borderRadius: 12 }}
           icon="arrow-right"
         >
-          Entrar
+          {t.submit}
         </Button>
 
         <View style={styles.secure}>
           <Icon source="lock-check-outline" size={14} color={colors.onSurfaceVariant} />
           <Text variant="labelSmall" style={{ color: colors.onSurfaceVariant }}>
-            Conexión segura · Tus datos están protegidos
+            {t.secure}
           </Text>
         </View>
       </View>
@@ -147,7 +198,7 @@ export default function LoginScreen() {
   if (isDesktop) {
     return (
       <View style={[styles.desktop, { backgroundColor: colors.background }]}>
-        <BrandPanel />
+        <BrandPanel lang={lang} />
         <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={styles.desktopForm}>
           {form}
         </KeyboardAvoidingView>
@@ -183,4 +234,6 @@ const styles = StyleSheet.create({
   formWrap: { width: '100%', maxWidth: 440, alignSelf: 'center' },
   form: { padding: 28, gap: 24, borderWidth: 1 },
   secure: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6 },
+  langRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'flex-end', gap: 8 },
+  langBtn: { paddingHorizontal: 10, paddingVertical: 6, borderRadius: 8, alignItems: 'center', justifyContent: 'center' },
 });

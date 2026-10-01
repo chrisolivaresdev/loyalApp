@@ -1,6 +1,9 @@
+import { useResponsive } from '@/hooks/useResponsive';
+import { useSettingsStore } from '@/stores/settings';
+import { palette } from '@/theme';
+import { LinearGradient } from 'expo-linear-gradient';
 import { ReactNode, useState } from 'react';
 import { ScrollView, StyleSheet, View } from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import {
   Avatar,
   Divider,
@@ -11,9 +14,7 @@ import {
   TouchableRipple,
   useTheme,
 } from 'react-native-paper';
-import { LinearGradient } from 'expo-linear-gradient';
-import { useResponsive } from '@/hooks/useResponsive';
-import { palette } from '@/theme';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 export type Lang = 'es' | 'en';
 
@@ -23,9 +24,11 @@ interface AppShellProps {
   userRole?: string;
   lang: Lang;
   onLangChange: (lang: Lang) => void;
+  onHome: () => void;
   onProfile: () => void;
   onLogout: () => void;
-  labels: { profile: string; logout: string; language: string; home: string };
+  onCotizaciones: () => void;
+  labels: { profile: string; logout: string; language: string; home: string; quotes: string; menu?: string; brand?: string };
   children: ReactNode;
 }
 
@@ -81,12 +84,34 @@ function LangMenu({
   );
 }
 
-function Brand({ compact = false, light = true }: { compact?: boolean; light?: boolean }) {
-  const fg = light ? '#FFFFFF' : palette.navy[800];
+const BRAND_SUBTITLE: Record<Lang, string> = { es: 'Portal de Agentes', en: 'Agent Portal' };
+const MENU_LABEL: Record<Lang, string> = { es: 'Menú', en: 'Menu' };
+
+function translateRole(role: string | undefined, lang: Lang) {
+  if (!role) return '';
+  const map: Record<string, Record<Lang, string>> = {
+    'agente': { es: 'Agente', en: 'Agent' },
+    'administrador': { es: 'Administrador', en: 'Administrator' },
+    'supervisor': { es: 'Supervisor', en: 'Supervisor' },
+    'gerente': { es: 'Gerente', en: 'Manager' },
+    'usuario': { es: 'Usuario', en: 'User' },
+    'vendedor': { es: 'Vendedor', en: 'Seller' },
+    'asesor': { es: 'Asesor', en: 'Advisor' },
+    'asistente agente': { es: 'Asistente Agente', en: 'Agent Assistant' },
+    'asistente': { es: 'Asistente', en: 'Assistant' },
+    'agent': { es: 'Agente', en: 'Agent' },
+    'administrator': { es: 'Administrador', en: 'Administrator' },
+  };
+  const key = role.trim().toLowerCase();
+  return map[key]?.[lang] ?? role.trim();
+}
+
+function Brand({ compact = false, light = true, lang = 'es' }: { compact?: boolean; light?: boolean; lang?: Lang }) {
+  const fg = light ? '#FFFFFF' : palette.indigo[800];
   return (
     <View style={styles.brand}>
       <View style={[styles.logo, { backgroundColor: palette.gold[500] }]}>
-        <Icon source="shield-check" size={22} color={palette.navy[900]} />
+        <Icon source="shield-check" size={22} color={palette.indigo[900]} />
       </View>
       {!compact && (
         <View>
@@ -94,7 +119,7 @@ function Brand({ compact = false, light = true }: { compact?: boolean; light?: b
             Loyal
           </Text>
           <Text variant="labelSmall" style={{ color: fg, opacity: 0.7 }}>
-            Portal de Agentes
+            {BRAND_SUBTITLE[lang]}
           </Text>
         </View>
       )}
@@ -108,34 +133,31 @@ export function AppShell(props: AppShellProps) {
 }
 
 function DesktopShell({
-  title, userName, userRole, lang, onLangChange, onProfile, onLogout, labels, children,
+  title, userName, userRole, lang, onLangChange, onHome, onProfile, onLogout, onCotizaciones, labels, children,
 }: AppShellProps) {
+  const activeLang = useSettingsStore((s) => s.lang);
   const { colors } = useTheme();
   return (
     <View style={[styles.row, { backgroundColor: colors.background }]}>
       <LinearGradient
-        colors={[palette.navy[800], palette.navy[950]]}
+        colors={[palette.indigo[800], palette.indigo[950]]}
         style={styles.sidebar}
       >
-        <Brand />
+        <Brand lang={activeLang} />
         <View style={styles.nav}>
-          <TouchableRipple
-            onPress={() => {}}
-            style={[styles.navItem, styles.navItemActive]}
-            borderless
-          >
+          <TouchableRipple onPress={onHome} style={styles.navItem} borderless>
             <View style={styles.navInner}>
-              <Icon source="view-dashboard-outline" size={20} color="#FFFFFF" />
-              <Text variant="labelLarge" style={{ color: '#FFFFFF' }}>
+              <Icon source="view-dashboard-outline" size={20} color={palette.indigo[200]} />
+              <Text variant="labelLarge" style={{ color: palette.indigo[200] }}>
                 {labels.home}
               </Text>
             </View>
           </TouchableRipple>
-          <TouchableRipple onPress={onProfile} style={styles.navItem} borderless>
+          <TouchableRipple onPress={onCotizaciones} style={styles.navItem} borderless>
             <View style={styles.navInner}>
-              <Icon source="account-outline" size={20} color={palette.navy[200]} />
-              <Text variant="labelLarge" style={{ color: palette.navy[200] }}>
-                {labels.profile}
+              <Icon source="file-document-edit-outline" size={20} color={palette.indigo[200]} />
+              <Text variant="labelLarge" style={{ color: palette.indigo[200] }}>
+                {labels.quotes}
               </Text>
             </View>
           </TouchableRipple>
@@ -148,15 +170,15 @@ function DesktopShell({
                 size={36}
                 label={getInitials(userName)}
                 style={{ backgroundColor: palette.gold[500] }}
-                labelStyle={{ color: palette.navy[900], fontFamily: 'Inter_600SemiBold' }}
+                labelStyle={{ color: palette.indigo[900], fontFamily: 'Inter_600SemiBold' }}
               />
               <View style={{ flex: 1 }}>
                 <Text variant="labelLarge" style={{ color: '#FFFFFF' }} numberOfLines={1}>
                   {userName.trim()}
                 </Text>
                 {!!userRole && (
-                  <Text variant="labelSmall" style={{ color: palette.navy[300] }} numberOfLines={1}>
-                    {userRole}
+                  <Text variant="labelSmall" style={{ color: palette.indigo[300] }} numberOfLines={1}>
+                    {translateRole(userRole, activeLang)}
                   </Text>
                 )}
               </View>
@@ -164,8 +186,8 @@ function DesktopShell({
           </TouchableRipple>
           <TouchableRipple onPress={onLogout} style={styles.navItem} borderless>
             <View style={styles.navInner}>
-              <Icon source="logout" size={20} color={palette.navy[200]} />
-              <Text variant="labelLarge" style={{ color: palette.navy[200] }}>
+              <Icon source="logout" size={20} color={palette.indigo[200]} />
+              <Text variant="labelLarge" style={{ color: palette.indigo[200] }}>
                 {labels.logout}
               </Text>
             </View>
@@ -186,28 +208,67 @@ function DesktopShell({
   );
 }
 
+function MobileNavMenu({
+  onHome,
+  onCotizaciones,
+  onProfile,
+  onLogout,
+  labels,
+  lang,
+}: {
+  onHome: () => void;
+  onCotizaciones: () => void;
+  onProfile: () => void;
+  onLogout: () => void;
+  labels: AppShellProps['labels'];
+  lang: Lang;
+}) {
+  const [open, setOpen] = useState(false);
+  return (
+    <Menu
+      visible={open}
+      onDismiss={() => setOpen(false)}
+      anchor={
+        <IconButton
+          icon="menu"
+          iconColor="#FFFFFF"
+          onPress={() => setOpen(true)}
+          accessibilityLabel={labels.menu ?? MENU_LABEL[lang]}
+        />
+      }
+      contentStyle={{ backgroundColor: 'white' }}
+      anchorPosition="bottom"
+    >
+      <Menu.Item leadingIcon="view-dashboard-outline" onPress={() => { onHome(); setOpen(false); }} title={labels.home} />
+      <Menu.Item leadingIcon="file-document-edit-outline" onPress={() => { onCotizaciones(); setOpen(false); }} title={labels.quotes} />
+      <Menu.Item leadingIcon="logout" onPress={() => { onLogout(); setOpen(false); }} title={labels.logout} />
+    </Menu>
+  );
+}
+
 function MobileShell({
-  title, userName, lang, onLangChange, onProfile, onLogout, labels, children,
+  title, userName, lang, onLangChange, onHome, onProfile, onLogout, onCotizaciones, labels, children,
 }: AppShellProps) {
+  const activeLang = useSettingsStore((s) => s.lang);
   const { colors } = useTheme();
   const insets = useSafeAreaInsets();
   return (
     <View style={[styles.flex, { backgroundColor: colors.background }]}>
       <LinearGradient
-        colors={[palette.navy[800], palette.navy[600]]}
+        colors={[palette.indigo[800], palette.indigo[600]]}
         start={{ x: 0, y: 0 }}
         end={{ x: 1, y: 1 }}
         style={[styles.mobileHeader, { paddingTop: insets.top + 12 }]}
       >
         <View style={styles.mobileTopRow}>
-          <Brand compact />
+          <Brand compact lang={activeLang} />
           <View style={styles.mobileActions}>
+            <MobileNavMenu onHome={onHome} onCotizaciones={onCotizaciones} onProfile={onProfile} onLogout={onLogout} labels={labels} lang={lang} />
             <LangMenu lang={lang} onChange={onLangChange} color="#FFFFFF" label={labels.language} />
             <IconButton icon="account-circle-outline" iconColor="#FFFFFF" onPress={onProfile} accessibilityLabel={labels.profile} />
-            <IconButton icon="logout" iconColor="#FFFFFF" onPress={onLogout} accessibilityLabel={labels.logout} />
           </View>
         </View>
-        <Text variant="labelMedium" style={{ color: palette.navy[200], marginTop: 8 }}>
+        <Text variant="labelMedium" style={{ color: palette.indigo[200], marginTop: 8 }}>
           {title}
         </Text>
         <Text variant="headlineSmall" style={{ color: '#FFFFFF' }} numberOfLines={1}>

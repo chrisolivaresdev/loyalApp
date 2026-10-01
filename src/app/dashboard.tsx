@@ -1,13 +1,17 @@
 import { AgentCard } from '@/components/AgentCard';
 import { AppShell, Lang } from '@/components/AppShell';
 import { BreakdownCard } from '@/components/BreakdownCard';
+import { ChartsSection } from '@/components/ChartsSection';
 import { GoalCard } from '@/components/GoalCard';
 import { StatCard } from '@/components/StatCard';
 import { useLogout } from '@/hooks/useAuth';
+import { useCharts } from '@/hooks/useCharts';
 import { useDashboard } from '@/hooks/useDashboard';
 import { useResponsive } from '@/hooks/useResponsive';
 import { useAuthStore } from '@/stores/auth';
+import { useSettingsStore } from '@/stores/settings';
 import { palette } from '@/theme';
+import { useRouter } from 'expo-router';
 import { useState } from 'react';
 import { StyleSheet, View } from 'react-native';
 import {
@@ -35,12 +39,17 @@ const labels: Record<Lang, { [key: string]: string }> = {
     goalTitle: 'Cumplimiento del objetivo anual',
     achieved: 'Producción',
     summary: 'Actividad comercial',
+    charts: 'Gráficos',
     quotes: 'Cotizaciones',
     requests: 'Solicitudes',
     lastRequest: 'Última solicitud',
     lastPayment: 'Último pago de comisiones',
-    breakdownPolicies: 'Detalle de pólizas',
-    breakdownPremiums: 'Detalle de primas',
+    breakdownPolicies: 'Cartera - Pólizas',
+    breakdownPremiums: 'Cartera - Primas',
+    active: 'Activas',
+    gracePeriod: 'Período de Gracia',
+    pendingPayment: 'Pendiente de Pago',
+    total: 'Total',
     newBusiness: 'Nuevo negocio',
     renewals: 'Renovaciones',
     cancelled: 'Canceladas',
@@ -75,12 +84,17 @@ const labels: Record<Lang, { [key: string]: string }> = {
     goalTitle: 'Annual goal achievement',
     achieved: 'Production',
     summary: 'Sales activity',
+    charts: 'Charts',
     quotes: 'Quotes',
     requests: 'Applications',
     lastRequest: 'Last application',
     lastPayment: 'Last commission payment',
-    breakdownPolicies: 'Policy breakdown',
-    breakdownPremiums: 'Premium breakdown',
+    breakdownPolicies: 'Portfolio - Policies',
+    breakdownPremiums: 'Portfolio - Premiums',
+    active: 'Active',
+    gracePeriod: 'Grace Period',
+    pendingPayment: 'Pending Payment',
+    total: 'Total',
     newBusiness: 'New business',
     renewals: 'Renewals',
     cancelled: 'Cancelled',
@@ -171,9 +185,12 @@ function ProfileRow({ icon, label, value }: { icon: string; label: string; value
 export default function DashboardScreen() {
   const user = useAuthStore((s) => s.user);
   const { data, isLoading, isError, refetch, isRefetching } = useDashboard();
+  const { productos, ventas, paises } = useCharts();
   const logout = useLogout();
+  const router = useRouter();
   const { isMobile } = useResponsive();
-  const [lang, setLang] = useState<Lang>('es');
+  const lang = useSettingsStore((s) => s.lang);
+  const setLang = useSettingsStore((s) => s.setLang);
   const [profileVisible, setProfileVisible] = useState(false);
   const t = labels[lang];
   const { colors, roundness } = useTheme();
@@ -189,9 +206,11 @@ export default function DashboardScreen() {
         userRole={user?.NombrePerfil}
         lang={lang}
         onLangChange={setLang}
-        onProfile={() => setProfileVisible(true)}
+        onProfile={() => router.push('/perfil' as any)}
         onLogout={() => logout.mutate()}
-        labels={{ profile: t.profile, logout: t.logout, language: t.language, home: t.home }}
+        onHome={() => {}}
+        onCotizaciones={() => router.push('/cotizaciones' as any)}
+        labels={{ profile: t.profile, logout: t.logout, language: t.language, home: t.home, quotes: t.quotes }}
       >
         {!isMobile && (
           <View style={styles.hero}>
@@ -275,21 +294,35 @@ export default function DashboardScreen() {
             <View style={styles.grid}>
               <BreakdownCard
                 title={t.breakdownPolicies}
-                subtitle={`${formatNumber(data.TotalPolizasActivas)} ${t.policies.toLowerCase()}`}
+                subtitle={`${formatNumber(data.TotalPolizasActivas)} ${t.active.toLowerCase()}`}
                 items={[
-                  { label: t.newBusiness, value: formatNumber(data.PolizasNuevoNegocio), color: palette.navy[600] },
-                  { label: t.renewals, value: formatNumber(data.PolizasRenovaciones), color: palette.success },
+                  { label: t.active, value: formatNumber(data.TotalPolizasActivas), color: palette.navy[600] },
+                  { label: t.gracePeriod, value: formatNumber(0), color: palette.success },
+                  { label: t.pendingPayment, value: formatNumber(0), color: palette.warning },
+                  { label: t.total, value: formatNumber(data.TotalPolizasActivas), color: palette.navy[900] },
                   { label: t.cancelled, value: formatNumber(data.PolizasCanceladas), color: palette.danger },
                 ]}
               />
               <BreakdownCard
                 title={t.breakdownPremiums}
-                subtitle={formatCurrency(data.TotalPrimas)}
+                subtitle={formatCurrency(data.TotalPrimasPagadas)}
                 items={[
-                  { label: t.newBusiness, value: formatCurrency(data.PrimasNuevoNegocio), color: palette.navy[600] },
-                  { label: t.renewals, value: formatCurrency(data.PrimasRenovaciones), color: palette.success },
-                  { label: t.pending, value: formatCurrency(data.PrimasPendientesPago), color: palette.warning },
+                  { label: t.active, value: formatCurrency(data.TotalPrimasPagadas), color: palette.navy[600] },
+                  { label: t.gracePeriod, value: formatCurrency(data.PrimasComisionablesPeriodoGracias), color: palette.success },
+                  { label: t.pendingPayment, value: formatCurrency(data.PrimasPendientesPago), color: palette.warning },
+                  { label: t.total, value: formatCurrency((data.TotalPrimasPagadas || 0) + (data.PrimasComisionablesPeriodoGracias || 0) + (data.PrimasPendientesPago || 0)), color: palette.navy[900] },
+                  { label: t.cancelled, value: formatCurrency(data.PrimasCanceladas), color: palette.danger },
                 ]}
+              />
+            </View>
+
+            <View>
+              <SectionTitle title={t.charts} />
+              <ChartsSection
+                productos={productos.data}
+                ventas={ventas.data}
+                paises={paises.data}
+                lang={lang}
               />
             </View>
           </>
