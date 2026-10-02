@@ -1,9 +1,14 @@
 import axios from 'axios';
 import { Platform } from 'react-native';
 
-const API_URL =
-  process.env.EXPO_PUBLIC_API_URL ??
-  (Platform.OS === 'android' ? 'http://10.0.2.2:8080/api/v1' : 'http://localhost:8080/api/v1');
+const envUrl = process.env.EXPO_PUBLIC_API_URL;
+const API_URL = envUrl
+  ? Platform.OS === 'android'
+    ? envUrl.replace('://localhost', '://10.0.2.2').replace('://127.0.0.1', '://10.0.2.2')
+    : envUrl
+  : Platform.OS === 'android'
+    ? 'http://10.0.2.2:8080/api/v1'
+    : 'http://localhost:8080/api/v1';
 
 export const api = axios.create({
   baseURL: API_URL,

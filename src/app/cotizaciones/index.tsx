@@ -1,19 +1,18 @@
 import { Cotizacion } from '@/api/cotizaciones';
 import { AppShell, Lang } from '@/components/AppShell';
 import { useLogout } from '@/hooks/useAuth';
-import { useCotizacion, useCotizaciones } from '@/hooks/useCotizaciones';
+import { useCotizaciones } from '@/hooks/useCotizaciones';
 import { useResponsive } from '@/hooks/useResponsive';
 import { useAuthStore } from '@/stores/auth';
 import { useSettingsStore } from '@/stores/settings';
 import { palette } from '@/theme';
-import { useRouter } from 'expo-router';
+import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useEffect, useMemo, useState } from 'react';
 import { ScrollView, StyleSheet, View } from 'react-native';
 import {
   ActivityIndicator,
   Button,
   Chip,
-  Dialog,
   Divider,
   FAB,
   Icon,
@@ -27,6 +26,7 @@ import {
 const labels: Record<Lang, { [key: string]: string }> = {
   es: {
     quotes: 'Cotizaciones',
+    requests: 'Solicitudes',
     home: 'Inicio',
     profile: 'Mi perfil',
     logout: 'Cerrar sesión',
@@ -74,6 +74,7 @@ const labels: Record<Lang, { [key: string]: string }> = {
   },
   en: {
     quotes: 'Quotes',
+    requests: 'Requests',
     home: 'Home',
     profile: 'My profile',
     logout: 'Sign out',
@@ -119,6 +120,54 @@ const labels: Record<Lang, { [key: string]: string }> = {
     quarterly: 'Quarterly',
     monthly: 'Monthly',
   },
+  pt: {
+    quotes: 'Cotações',
+    requests: 'Solicitações',
+    home: 'Início',
+    profile: 'Meu perfil',
+    logout: 'Sair',
+    language: 'Idioma',
+    newQuote: 'Nova cotação',
+    subtitle: 'Gerencie e consulte as cotações dos seus clientes',
+    search: 'Buscar por nome, código ou e-mail',
+    loading: 'Carregando cotações…',
+    empty: 'Não há cotações para mostrar',
+    emptyHint: 'Registre uma nova cotação para começar.',
+    error: 'Não foi possível carregar as cotações',
+    retry: 'Tentar novamente',
+    all: 'Todas',
+    code: 'Código',
+    date: 'Data',
+    status: 'Status',
+    holder: 'Solicitante',
+    country: 'País',
+    contact: 'Contato',
+    age: 'Idade',
+    years: 'anos',
+    dependents: 'Dependentes',
+    spouse: 'Cônjuge',
+    maternity: 'Maternidade',
+    transplant: 'Transplante',
+    total: 'Total',
+    detail: 'Detalhe da cotação',
+    validity: 'Início de vigência',
+    gender: 'Gênero',
+    birthdate: 'Nascimento',
+    email: 'E-mail',
+    premiums: 'Prêmios cotados',
+    noPremiums: 'Sem prêmios registrados',
+    close: 'Fechar',
+    yes: 'Sim',
+    no: 'Não',
+    results: 'resultados',
+    of: 'de',
+    perPage: 'Por página',
+    products: 'Produtos cotados',
+    annual: 'Anual',
+    semiannual: 'Semestral',
+    quarterly: 'Trimestral',
+    monthly: 'Mensal',
+  },
 };
 
 const statusColors: Record<string, string> = {
@@ -138,6 +187,7 @@ const statusColors: Record<string, string> = {
 const statusLabels: Record<Lang, Record<string, string>> = {
   es: { A: 'Aprobada', G: 'Generada', P: 'Pendiente', E: 'Enviada', I: 'Inactiva', C: 'Cancelada', R: 'Rechazada', '1': 'Aprobada', '3': 'Generada', '01': 'Aprobada', '03': 'Generada' },
   en: { A: 'Approved', G: 'Generated', P: 'Pending', E: 'Sent', I: 'Inactive', C: 'Canceled', R: 'Rejected', '1': 'Approved', '3': 'Generated', '01': 'Approved', '03': 'Generated' },
+  pt: { A: 'Aprovada', G: 'Gerada', P: 'Pendente', E: 'Enviada', I: 'Inativa', C: 'Cancelada', R: 'Rejeitada', '1': 'Aprovada', '3': 'Gerada', '01': 'Aprovada', '03': 'Gerada' },
 };
 
 const normalizeStatusCode = (code: string) => {
@@ -249,156 +299,6 @@ function QuoteRow({ c, t, onPress }: { c: Cotizacion; t: Record<string, string>;
   );
 }
 
-function getInitials(name: string) {
-  return name.trim().split(/\s+/).filter(Boolean).map((n) => n[0]).join('').slice(0, 2).toUpperCase();
-}
-
-function QuoteDetail({ codigo, t, onClose }: { codigo: number; t: Record<string, string>; onClose: () => void }) {
-  const { data, isLoading, isError } = useCotizacion(codigo);
-  const { colors, roundness } = useTheme();
-
-  const productos = useMemo(() => {
-    if (!data) return [];
-    const defs = [
-      { name: 'Beyond', items: data.ListaPrimasAnualBeyond },
-      { name: 'Privilege', items: data.ListaPrimasAnualPrivilege },
-      { name: 'Liberty', items: data.ListaPrimasAnualLiberty },
-      { name: 'Legacy', items: data.ListaPrimasAnualLegacy },
-      { name: 'Essential', items: data.ListaPrimasAnualEssential },
-    ].map((d) => ({ ...d, items: d.items || [] }));
-    return defs.filter((d) => d.items.length > 0);
-  }, [data]);
-
-  const frecuencias = useMemo(() => {
-    if (!data) return [];
-    const listas = [
-      [t.annual, data.ListaPrimasAnualBeyond],
-      [t.semiannual, data.ListaPrimasSemiAnualBeyond],
-      [t.quarterly, data.ListaPrimasTrimestralBeyond],
-      [t.monthly, data.ListaPrimasMensualBeyond],
-    ] as [string, any[]][];
-    return listas.filter(([, arr]) => (arr || []).length > 0).map(([freq, arr]) => ({ freq, total: (arr || []).reduce((s, p) => s + Number(p.Opcion2 || 0), 0) }));
-  }, [data, t]);
-
-  const Field = ({ label, value, icon }: { label: string; value?: string | number | null; icon: string }) => (
-    <View style={[styles.field, { backgroundColor: colors.background, borderColor: colors.outlineVariant }]}>
-      <View style={styles.fieldLabel}>
-        <Icon source={icon} size={14} color={palette.indigo[500]} />
-        <Text variant="labelSmall" style={{ color: colors.onSurfaceVariant }} numberOfLines={1}>{label}</Text>
-      </View>
-      <Text variant="bodyMedium" style={{ fontFamily: 'Inter_600SemiBold' }} numberOfLines={2}>
-        {value === undefined || value === null || String(value).trim() === '' ? '—' : String(value)}
-      </Text>
-    </View>
-  );
-
-  const Section = ({ title, children }: { title: string; children: React.ReactNode }) => (
-    <View style={{ gap: 10 }}>
-      <View style={styles.sectionHeader}>
-        <View style={[styles.sectionBar, { backgroundColor: palette.indigo[500] }]} />
-        <Text variant="labelLarge" style={{ color: colors.onSurface }}>{title}</Text>
-      </View>
-      {children}
-    </View>
-  );
-
-  return (
-    <Dialog visible onDismiss={onClose} style={[styles.dialog, { backgroundColor: colors.surface }]}>
-      <View style={[styles.dialogHeader, { borderBottomColor: colors.outlineVariant }]}>
-        <View style={[styles.detailAvatar, { backgroundColor: palette.indigo[500] }]}>
-          <Text variant="titleMedium" style={{ color: '#FFFFFF', fontFamily: 'Inter_700Bold' }}>
-            {data ? getInitials(data.NombreSolicitante) : '#'}
-          </Text>
-        </View>
-        <View style={{ flex: 1, gap: 2 }}>
-          <Text variant="titleMedium" numberOfLines={1}>
-            {data?.NombreSolicitante ?? `${t.detail} #${codigo}`}
-          </Text>
-          <Text variant="bodySmall" style={{ color: colors.onSurfaceVariant }} numberOfLines={1}>
-            {t.detail} #{codigo}{data?.DescripcionPais ? ` · ${data.DescripcionPais}` : ''}
-          </Text>
-        </View>
-        {data && (
-          <StatusChip code={data.CodigoEstadoCotizacion} description={data.DescripcionEstadoCotizacion} />
-        )}
-        <IconButton icon="close" size={20} onPress={onClose} style={{ margin: 0 }} />
-      </View>
-
-      <Dialog.ScrollArea style={{ paddingHorizontal: 0, borderTopWidth: 0, borderBottomWidth: 0 }}>
-        <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ padding: 20, gap: 20 }}>
-          {isLoading && <ActivityIndicator animating style={{ marginVertical: 24 }} />}
-          {isError && <Text style={{ color: colors.error, textAlign: 'center' }}>{t.error}</Text>}
-          {data && (
-            <>
-              <Section title={t.detail}>
-                <View style={styles.fieldGrid}>
-                  <Field icon="calendar-outline" label={t.validity} value={data.FechaInicioSolicitada} />
-                  <Field icon="cake-variant" label={t.birthdate} value={data.FechaNacimnientoSolicitante} />
-                  <Field icon="timer-sand" label={t.age} value={`${data.EdadSolicitante || 0} ${t.years}`} />
-                  <Field icon="gender-male-female" label={t.gender} value={data.SexoSolicitante} />
-                  <Field icon="email-outline" label={t.email} value={data.Correo} />
-                  <Field icon="account-group-outline" label={t.dependents} value={data.NumeroDependientes || 0} />
-                  <Field icon="baby-carriage" label={t.maternity} value={isYes(data.ComplicacionesMaternidad) ? t.yes : t.no} />
-                  <Field icon="heart-pulse" label={t.transplant} value={isYes(data.TrasplanteOrganos) ? t.yes : t.no} />
-                </View>
-              </Section>
-
-              {!!data.FechaNacimnientoConyuge && (
-                <Section title={t.spouse}>
-                  <View style={styles.fieldGrid}>
-                    <Field icon="cake-variant" label={t.birthdate} value={data.FechaNacimnientoConyuge} />
-                    <Field icon="timer-sand" label={t.age} value={`${data.EdadConyuge || 0} ${t.years}`} />
-                    <Field icon="gender-male-female" label={t.gender} value={data.SexoConyuge} />
-                  </View>
-                </Section>
-              )}
-
-              {frecuencias.length > 0 && (
-                <Section title={t.premiums}>
-                  <View style={styles.fieldGrid}>
-                    {frecuencias.map((f) => (
-                      <View key={f.freq} style={[styles.field, { backgroundColor: palette.indigo[50], borderColor: palette.indigo[100] }]}>
-                        <Text variant="labelSmall" style={{ color: palette.indigo[700] }}>{f.freq}</Text>
-                        <Text variant="titleMedium" style={{ color: palette.indigo[700] }}>${f.total.toLocaleString('en-US')}</Text>
-                      </View>
-                    ))}
-                  </View>
-                </Section>
-              )}
-
-              {productos.length > 0 && (
-                <Section title={t.products}>
-                  <View style={[styles.productTable, { borderColor: colors.outlineVariant }]}>
-                    {productos.map((p, idx) => (
-                      <View key={p.name} style={[styles.productBlock, idx > 0 && { borderTopWidth: 1, borderTopColor: colors.outlineVariant }]}>
-                        <View style={[styles.productHead, { backgroundColor: colors.background }]}>
-                          <Text variant="labelLarge" style={{ color: palette.indigo[600] }}>{p.name}</Text>
-                        </View>
-                        {p.items.map((pr, i) => (
-                          <View key={i} style={[styles.productLine, i > 0 && { borderTopWidth: 1, borderTopColor: colors.outlineVariant }]}>
-                            <Text variant="bodySmall" style={{ color: colors.onSurfaceVariant, flex: 1 }} numberOfLines={1}>
-                              {pr.FormaPago} · {pr.Cobertura}
-                            </Text>
-                            <Text variant="bodyMedium" style={{ fontFamily: 'Inter_600SemiBold' }}>{pr.Opcion1}</Text>
-                          </View>
-                        ))}
-                      </View>
-                    ))}
-                  </View>
-                </Section>
-              )}
-            </>
-          )}
-        </ScrollView>
-      </Dialog.ScrollArea>
-      <View style={[styles.dialogFooter, { borderTopColor: colors.outlineVariant }]}>
-        <Button onPress={onClose} mode="contained" style={{ borderRadius: 6 }} contentStyle={{ paddingHorizontal: 12 }}>
-          {t.close}
-        </Button>
-      </View>
-    </Dialog>
-  );
-}
 
 const PAGE_SIZES = [10, 25, 50];
 
@@ -476,16 +376,21 @@ export default function CotizacionesScreen() {
   const [estado, setEstado] = useState<string | undefined>(undefined);
   const [query, setQuery] = useState('');
   const [debouncedQuery, setDebouncedQuery] = useState('');
-  const [selected, setSelected] = useState<number | null>(null);
   const [page, setPage] = useState(1);
   const [limit, setLimit] = useState(10);
+  const params = useLocalSearchParams<{ detalle?: string }>();
+
+  useEffect(() => {
+    const codigo = Number(params.detalle);
+    if (Number.isFinite(codigo) && codigo > 0) router.replace(`/cotizaciones/${codigo}` as any);
+  }, [params.detalle]);
 
   useEffect(() => {
     const id = setTimeout(() => setDebouncedQuery(query), 600);
     return () => clearTimeout(id);
   }, [query]);
 
-  const { data, isLoading, isError, refetch, isRefetching, isFetching } = useCotizaciones(estado, page, limit, debouncedQuery);
+  const { data, isLoading, isError, error, refetch, isRefetching, isFetching } = useCotizaciones(estado, page, limit, debouncedQuery);
   const { data: all } = useCotizaciones(undefined, 1, 100);
   const logout = useLogout();
   const router = useRouter();
@@ -527,7 +432,8 @@ export default function CotizacionesScreen() {
         onLogout={() => logout.mutate()}
         onHome={() => router.push('/dashboard' as any)}
         onCotizaciones={() => {}}
-        labels={{ profile: t.profile, logout: t.logout, language: t.language, home: t.home, quotes: t.quotes }}
+        onSolicitudes={() => router.push('/solicitudes' as any)}
+        onPolizas={() => router.push('/polizas' as any)}
       >
         <View style={styles.header}>
           <View style={{ flex: 1, gap: 2 }}>
@@ -603,6 +509,12 @@ export default function CotizacionesScreen() {
           <View style={styles.centered}>
             <Icon source="cloud-off-outline" size={40} color={colors.onSurfaceVariant} />
             <Text variant="titleMedium" style={{ marginTop: 8 }}>{t.error}</Text>
+            {__DEV__ && !!error && (
+              <Text variant="bodySmall" style={{ color: colors.onSurfaceVariant, marginTop: 4, textAlign: 'center' }}>
+                {String((error as any)?.response?.status ?? '')}{' '}
+                {String((error as any)?.response?.data?.message ?? (error as any)?.message ?? '')}
+              </Text>
+            )}
             <Button mode="contained-tonal" icon="refresh" onPress={() => refetch()} loading={isRefetching} style={{ marginTop: 12 }}>
               {t.retry}
             </Button>
@@ -628,7 +540,7 @@ export default function CotizacionesScreen() {
               <View style={{ width: 20 }} />
             </View>
             {filtered.map((c) => (
-              <QuoteRow key={c.CodigoCotizacion} c={c} t={t} onPress={() => setSelected(c.CodigoCotizacion)} />
+              <QuoteRow key={c.CodigoCotizacion} c={c} t={t} onPress={() => router.push(`/cotizaciones/${c.CodigoCotizacion}` as any)} />
             ))}
             <Paginator
               page={meta?.page ?? page}
@@ -645,7 +557,7 @@ export default function CotizacionesScreen() {
         ) : (
           <View style={styles.list}>
             {filtered.map((c) => (
-              <QuoteCard key={c.CodigoCotizacion} c={c} t={t} onPress={() => setSelected(c.CodigoCotizacion)} />
+              <QuoteCard key={c.CodigoCotizacion} c={c} t={t} onPress={() => router.push(`/cotizaciones/${c.CodigoCotizacion}` as any)} />
             ))}
             <View style={[styles.table, { backgroundColor: colors.surface, borderColor: colors.outlineVariant, borderRadius: roundness }]}>
               <Paginator
@@ -668,7 +580,6 @@ export default function CotizacionesScreen() {
         <FAB icon="plus" label={t.newQuote} onPress={goNew} style={[styles.fab, { backgroundColor: palette.indigo[500] }]} color="#FFFFFF" />
       )}
 
-      {selected !== null && <QuoteDetail codigo={selected} t={t} onClose={() => setSelected(null)} />}
     </>
   );
 }
@@ -710,17 +621,4 @@ const styles = StyleSheet.create({
   centered: { alignItems: 'center', justifyContent: 'center', paddingVertical: 48 },
   emptyIcon: { width: 64, height: 64, borderRadius: 20, alignItems: 'center', justifyContent: 'center' },
   fab: { position: 'absolute', margin: 16, right: 0, bottom: 0 },
-  dialog: { maxWidth: 640, width: '94%', alignSelf: 'center', maxHeight: '90%', borderRadius: 8, overflow: 'hidden' },
-  dialogHeader: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingLeft: 20, paddingRight: 8, paddingVertical: 14, borderBottomWidth: 1 },
-  dialogFooter: { flexDirection: 'row', justifyContent: 'flex-end', paddingHorizontal: 20, paddingVertical: 12, borderTopWidth: 1 },
-  detailAvatar: { width: 40, height: 40, borderRadius: 6, alignItems: 'center', justifyContent: 'center' },
-  sectionHeader: { flexDirection: 'row', alignItems: 'center', gap: 8 },
-  sectionBar: { width: 3, height: 16, borderRadius: 2 },
-  fieldGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 10 },
-  field: { flexGrow: 1, flexBasis: '45%', minWidth: 140, padding: 12, gap: 4, borderWidth: 1, borderRadius: 6 },
-  fieldLabel: { flexDirection: 'row', alignItems: 'center', gap: 6 },
-  productTable: { borderWidth: 1, borderRadius: 6, overflow: 'hidden' },
-  productBlock: {},
-  productHead: { paddingHorizontal: 12, paddingVertical: 8 },
-  productLine: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 8, paddingHorizontal: 12, paddingVertical: 8 },
 });

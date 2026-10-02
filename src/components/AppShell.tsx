@@ -16,7 +16,25 @@ import {
 } from 'react-native-paper';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-export type Lang = 'es' | 'en';
+export type Lang = 'es' | 'en' | 'pt';
+
+export interface MenuLabels {
+  profile: string;
+  logout: string;
+  language: string;
+  home: string;
+  quotes: string;
+  requests: string;
+  policies: string;
+  menu?: string;
+  brand?: string;
+}
+
+const MENU_LABELS: Record<Lang, MenuLabels> = {
+  es: { profile: 'Mi perfil', logout: 'Cerrar sesión', language: 'Idioma', home: 'Inicio', quotes: 'Cotizaciones', requests: 'Solicitudes', policies: 'Pólizas' },
+  en: { profile: 'My profile', logout: 'Log out', language: 'Language', home: 'Home', quotes: 'Quotes', requests: 'Requests', policies: 'Policies' },
+  pt: { profile: 'Meu perfil', logout: 'Sair', language: 'Idioma', home: 'Início', quotes: 'Cotações', requests: 'Solicitações', policies: 'Apólices' },
+};
 
 interface AppShellProps {
   title: string;
@@ -28,7 +46,9 @@ interface AppShellProps {
   onProfile: () => void;
   onLogout: () => void;
   onCotizaciones: () => void;
-  labels: { profile: string; logout: string; language: string; home: string; quotes: string; menu?: string; brand?: string };
+  onSolicitudes: () => void;
+  onPolizas: () => void;
+  labels?: Partial<MenuLabels>;
   children: ReactNode;
 }
 
@@ -80,27 +100,32 @@ function LangMenu({
         onPress={() => { onChange('en'); setOpen(false); }}
         title="English"
       />
+      <Menu.Item
+        leadingIcon={lang === 'pt' ? 'check' : undefined}
+        onPress={() => { onChange('pt'); setOpen(false); }}
+        title="Português"
+      />
     </Menu>
   );
 }
 
-const BRAND_SUBTITLE: Record<Lang, string> = { es: 'Portal de Agentes', en: 'Agent Portal' };
-const MENU_LABEL: Record<Lang, string> = { es: 'Menú', en: 'Menu' };
+const BRAND_SUBTITLE: Record<Lang, string> = { es: 'Portal de Agentes', en: 'Agent Portal', pt: 'Portal do Agente' };
+const MENU_LABEL: Record<Lang, string> = { es: 'Menú', en: 'Menu', pt: 'Menu' };
 
 function translateRole(role: string | undefined, lang: Lang) {
   if (!role) return '';
   const map: Record<string, Record<Lang, string>> = {
-    'agente': { es: 'Agente', en: 'Agent' },
-    'administrador': { es: 'Administrador', en: 'Administrator' },
-    'supervisor': { es: 'Supervisor', en: 'Supervisor' },
-    'gerente': { es: 'Gerente', en: 'Manager' },
-    'usuario': { es: 'Usuario', en: 'User' },
-    'vendedor': { es: 'Vendedor', en: 'Seller' },
-    'asesor': { es: 'Asesor', en: 'Advisor' },
-    'asistente agente': { es: 'Asistente Agente', en: 'Agent Assistant' },
-    'asistente': { es: 'Asistente', en: 'Assistant' },
-    'agent': { es: 'Agente', en: 'Agent' },
-    'administrator': { es: 'Administrador', en: 'Administrator' },
+    'agente': { es: 'Agente', en: 'Agent', pt: 'Agente' },
+    'administrador': { es: 'Administrador', en: 'Administrator', pt: 'Administrador' },
+    'supervisor': { es: 'Supervisor', en: 'Supervisor', pt: 'Supervisor' },
+    'gerente': { es: 'Gerente', en: 'Manager', pt: 'Gerente' },
+    'usuario': { es: 'Usuario', en: 'User', pt: 'Usuário' },
+    'vendedor': { es: 'Vendedor', en: 'Seller', pt: 'Vendedor' },
+    'asesor': { es: 'Asesor', en: 'Advisor', pt: 'Consultor' },
+    'asistente agente': { es: 'Asistente Agente', en: 'Agent Assistant', pt: 'Assistente de Agente' },
+    'asistente': { es: 'Asistente', en: 'Assistant', pt: 'Assistente' },
+    'agent': { es: 'Agente', en: 'Agent', pt: 'Agente' },
+    'administrator': { es: 'Administrador', en: 'Administrator', pt: 'Administrador' },
   };
   const key = role.trim().toLowerCase();
   return map[key]?.[lang] ?? role.trim();
@@ -127,14 +152,17 @@ function Brand({ compact = false, light = true, lang = 'es' }: { compact?: boole
   );
 }
 
+type ResolvedShellProps = Omit<AppShellProps, 'labels'> & { labels: MenuLabels };
+
 export function AppShell(props: AppShellProps) {
   const { isDesktop } = useResponsive();
-  return isDesktop ? <DesktopShell {...props} /> : <MobileShell {...props} />;
+  const merged: ResolvedShellProps = { ...props, labels: { ...MENU_LABELS[props.lang], ...props.labels } };
+  return isDesktop ? <DesktopShell {...merged} /> : <MobileShell {...merged} />;
 }
 
 function DesktopShell({
-  title, userName, userRole, lang, onLangChange, onHome, onProfile, onLogout, onCotizaciones, labels, children,
-}: AppShellProps) {
+  title, userName, userRole, lang, onLangChange, onHome, onProfile, onLogout, onCotizaciones, onSolicitudes, onPolizas, labels, children,
+}: ResolvedShellProps) {
   const activeLang = useSettingsStore((s) => s.lang);
   const { colors } = useTheme();
   return (
@@ -158,6 +186,22 @@ function DesktopShell({
               <Icon source="file-document-edit-outline" size={20} color={palette.indigo[200]} />
               <Text variant="labelLarge" style={{ color: palette.indigo[200] }}>
                 {labels.quotes}
+              </Text>
+            </View>
+          </TouchableRipple>
+          <TouchableRipple onPress={onSolicitudes} style={styles.navItem} borderless>
+            <View style={styles.navInner}>
+              <Icon source="clipboard-list-outline" size={20} color={palette.indigo[200]} />
+              <Text variant="labelLarge" style={{ color: palette.indigo[200] }}>
+                {labels.requests}
+              </Text>
+            </View>
+          </TouchableRipple>
+          <TouchableRipple onPress={onPolizas} style={styles.navItem} borderless>
+            <View style={styles.navInner}>
+              <Icon source="shield-check-outline" size={20} color={palette.indigo[200]} />
+              <Text variant="labelLarge" style={{ color: palette.indigo[200] }}>
+                {labels.policies}
               </Text>
             </View>
           </TouchableRipple>
@@ -211,6 +255,8 @@ function DesktopShell({
 function MobileNavMenu({
   onHome,
   onCotizaciones,
+  onSolicitudes,
+  onPolizas,
   onProfile,
   onLogout,
   labels,
@@ -218,9 +264,11 @@ function MobileNavMenu({
 }: {
   onHome: () => void;
   onCotizaciones: () => void;
+  onSolicitudes: () => void;
+  onPolizas: () => void;
   onProfile: () => void;
   onLogout: () => void;
-  labels: AppShellProps['labels'];
+  labels: MenuLabels;
   lang: Lang;
 }) {
   const [open, setOpen] = useState(false);
@@ -241,14 +289,16 @@ function MobileNavMenu({
     >
       <Menu.Item leadingIcon="view-dashboard-outline" onPress={() => { onHome(); setOpen(false); }} title={labels.home} />
       <Menu.Item leadingIcon="file-document-edit-outline" onPress={() => { onCotizaciones(); setOpen(false); }} title={labels.quotes} />
+      <Menu.Item leadingIcon="clipboard-list-outline" onPress={() => { onSolicitudes(); setOpen(false); }} title={labels.requests} />
+      <Menu.Item leadingIcon="shield-check-outline" onPress={() => { onPolizas(); setOpen(false); }} title={labels.policies} />
       <Menu.Item leadingIcon="logout" onPress={() => { onLogout(); setOpen(false); }} title={labels.logout} />
     </Menu>
   );
 }
 
 function MobileShell({
-  title, userName, lang, onLangChange, onHome, onProfile, onLogout, onCotizaciones, labels, children,
-}: AppShellProps) {
+  title, userName, lang, onLangChange, onHome, onProfile, onLogout, onCotizaciones, onSolicitudes, onPolizas, labels, children,
+}: ResolvedShellProps) {
   const activeLang = useSettingsStore((s) => s.lang);
   const { colors } = useTheme();
   const insets = useSafeAreaInsets();
@@ -263,7 +313,7 @@ function MobileShell({
         <View style={styles.mobileTopRow}>
           <Brand compact lang={activeLang} />
           <View style={styles.mobileActions}>
-            <MobileNavMenu onHome={onHome} onCotizaciones={onCotizaciones} onProfile={onProfile} onLogout={onLogout} labels={labels} lang={lang} />
+            <MobileNavMenu onHome={onHome} onCotizaciones={onCotizaciones} onSolicitudes={onSolicitudes} onPolizas={onPolizas} onProfile={onProfile} onLogout={onLogout} labels={labels} lang={lang} />
             <LangMenu lang={lang} onChange={onLangChange} color="#FFFFFF" label={labels.language} />
             <IconButton icon="account-circle-outline" iconColor="#FFFFFF" onPress={onProfile} accessibilityLabel={labels.profile} />
           </View>

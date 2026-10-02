@@ -1,6 +1,13 @@
-import { getAseguradasPlan, getCotizacion, getCotizaciones } from '@/api/cotizaciones';
+import {
+  getAseguradasPlan,
+  getCotizacion,
+  getCotizaciones,
+  getPaises,
+  solicitarCotizacion,
+  SolicitarCotizacionRequest
+} from '@/api/cotizaciones';
 import { useAuthStore } from '@/stores/auth';
-import { keepPreviousData, useQuery } from '@tanstack/react-query';
+import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 
 function useCodigoAgente() {
   const user = useAuthStore((s) => s.user);
@@ -40,5 +47,29 @@ export function useAseguradasPlan(page = 1, limit = 25) {
     queryFn: () => getAseguradasPlan(page, limit),
     enabled,
     staleTime: 1000 * 60 * 10,
+  });
+}
+
+export function usePaises() {
+  const { enabled } = useCodigoAgente();
+  return useQuery({
+    queryKey: ['paises'],
+    queryFn: getPaises,
+    enabled,
+    staleTime: 1000 * 60 * 30,
+  });
+}
+
+export function useSolicitarCotizacion() {
+  const { codigoAgente } = useCodigoAgente();
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (dto: Omit<SolicitarCotizacionRequest, 'codigoAgente' | 'codigoCotizacion'>) =>
+      solicitarCotizacion({ ...dto, codigoCotizacion: 0, codigoAgente }),
+    onSuccess: (res) => {
+      if (res.success) {
+        queryClient.invalidateQueries({ queryKey: ['cotizaciones'] });
+      }
+    },
   });
 }

@@ -135,3 +135,69 @@ export const getCotizacion = (codigoCotizacion: number) =>
   api
     .get<any>(`/cotizaciones/${codigoCotizacion}`)
     .then((r) => unwrapObject<CotizacionDetalle>(r.data, 'CodigoCotizacion'));
+
+export const getCotizacionPdf = (
+  codigoCotizacion: number,
+  productType: number,
+  indicadorTipoVenta: string,
+) =>
+  api
+    .get<Blob>(`/cotizaciones/${codigoCotizacion}/pdf`, {
+      params: { productType, indicadorTipoVenta },
+      responseType: 'blob',
+    })
+    .then((r) => r.data);
+
+export const getCotizacionPdfArrayBuffer = (
+  codigoCotizacion: number,
+  productType: number,
+  indicadorTipoVenta: string,
+) =>
+  api
+    .get<ArrayBuffer>(`/cotizaciones/${codigoCotizacion}/pdf`, {
+      params: { productType, indicadorTipoVenta },
+      responseType: 'arraybuffer',
+    })
+    .then((r) => r.data);
+
+export interface Pais {
+  CodigoPais: number;
+  DescripcionPais: string;
+}
+
+export const getPaises = () =>
+  api
+    .get<any>('/cotizaciones/paises')
+    .then((r) => unwrapList(r.data) as Pais[]);
+
+export interface SolicitarCotizacionRequest {
+  codigoCotizacion: number;
+  fechaInicioValidez: string;
+  nombreSolicitante: string;
+  fechaNacimientoSolicitante: string;
+  sexoSolicitante: 'M' | 'F';
+  codigoTipoDocumentoIdentidad: string;
+  tipoDocumentoIdentidad: string;
+  codigoPais: number;
+  correo: string;
+  indicadorConyuge: boolean;
+  fechaNacimientoConyuge?: string;
+  sexoConyuge?: 'M' | 'F';
+  numeroDependientes: number;
+  trasplanteOrganos: boolean;
+  complicacionesMaternidad: boolean;
+  codigoAgente: number;
+}
+
+export interface SolicitarCotizacionResponse {
+  success: boolean;
+  title: string;
+  message: string;
+  type: 'success' | 'warning' | 'error';
+  redirect?: string;
+}
+
+export const solicitarCotizacion = (dto: SolicitarCotizacionRequest) =>
+  api
+    .post<SolicitarCotizacionResponse>('/cotizaciones/solicitar-cotizacion', dto)
+    .then((r) => r.data);

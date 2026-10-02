@@ -2,6 +2,7 @@ import { AppShell, Lang } from '@/components/AppShell';
 import { DateField } from '@/components/DateField';
 import { SelectField, SelectOption } from '@/components/SelectField';
 import { useLogout } from '@/hooks/useAuth';
+import { usePaises, useSolicitarCotizacion } from '@/hooks/useCotizaciones';
 import { useResponsive } from '@/hooks/useResponsive';
 import { useAuthStore } from '@/stores/auth';
 import { useSettingsStore } from '@/stores/settings';
@@ -15,6 +16,7 @@ const labels: Record<Lang, { [key: string]: string }> = {
   es: {
     title: 'Registro de cotización',
     quotes: 'Cotizaciones',
+    requests: 'Solicitudes',
     home: 'Inicio',
     profile: 'Mi perfil',
     logout: 'Cerrar sesión',
@@ -44,17 +46,18 @@ const labels: Record<Lang, { [key: string]: string }> = {
     required: 'Este campo es obligatorio',
     invalidDate: 'Formato esperado: AAAA-MM-DD',
     invalidEmail: 'Correo inválido',
-    pending: 'Formulario validado. El envío se habilitará cuando el servicio esté disponible.',
+    submitError: 'No se pudo generar la cotización',
     cleared: 'Formulario limpiado',
     male: 'Masculino',
     female: 'Femenino',
     dni: 'Cédula / DNI',
     passport: 'Pasaporte',
-    other: 'Otro',
+    rif: 'RIF',
   },
   en: {
     title: 'Quote registration',
     quotes: 'Quotes',
+    requests: 'Requests',
     home: 'Home',
     profile: 'My profile',
     logout: 'Sign out',
@@ -84,20 +87,56 @@ const labels: Record<Lang, { [key: string]: string }> = {
     required: 'This field is required',
     invalidDate: 'Expected format: YYYY-MM-DD',
     invalidEmail: 'Invalid email',
-    pending: 'Form validated. Submission will be enabled once the service is available.',
+    submitError: 'Could not generate the quote',
     cleared: 'Form cleared',
     male: 'Male',
     female: 'Female',
     dni: 'ID card',
     passport: 'Passport',
-    other: 'Other',
+    rif: 'RIF',
+  },
+  pt: {
+    title: 'Registro de cotação',
+    quotes: 'Cotações',
+    requests: 'Solicitações',
+    home: 'Início',
+    profile: 'Meu perfil',
+    logout: 'Sair',
+    language: 'Idioma',
+    agent: 'Agente',
+    validityStart: 'Data de início de vigência',
+    country: 'País',
+    holderName: 'Nome do solicitante',
+    holderPlaceholder: 'Nome do solicitante…',
+    idType: 'Tipo de identidade',
+    idDocument: 'Documento de identidade',
+    idPlaceholder: '00.000.000',
+    birthdate: 'Data de nascimento do solicitante',
+    gender: 'Gênero do solicitante',
+    email: 'E-mail',
+    emailPlaceholder: 'E-mail…',
+    spouse: 'Cônjuge',
+    spouseBirthdate: 'Data de nascimento do cônjuge',
+    spouseGender: 'Gênero do cônjuge',
+    dependents: 'Dependentes',
+    noDependents: 'Sem dependentes',
+    organTransplant: 'Transplante de órgãos',
+    maternity: 'Complicações de maternidade',
+    generate: 'Gerar cotação',
+    clear: 'Limpar cotação',
+    select: 'Selecione uma opção',
+    required: 'Este campo é obrigatório',
+    invalidDate: 'Formato esperado: AAAA-MM-DD',
+    invalidEmail: 'E-mail inválido',
+    submitError: 'Não foi possível gerar a cotação',
+    cleared: 'Formulário limpo',
+    male: 'Masculino',
+    female: 'Feminino',
+    dni: 'Identidade / DNI',
+    passport: 'Passaporte',
+    rif: 'RIF',
   },
 };
-
-const COUNTRIES: SelectOption[] = [
-  'Argentina', 'Bolivia', 'Brasil', 'Chile', 'Colombia', 'Costa Rica', 'Ecuador', 'El Salvador', 'Guatemala',
-  'Honduras', 'México', 'Nicaragua', 'Panamá', 'Paraguay', 'Perú', 'República Dominicana', 'Uruguay', 'Venezuela',
-].map((c) => ({ value: c, label: c }));
 
 const today = () => new Date().toISOString().slice(0, 10);
 const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
@@ -181,12 +220,20 @@ export default function NuevaCotizacionScreen() {
   const [errors, setErrors] = useState<Errors>({});
   const [snack, setSnack] = useState<string | null>(null);
 
+  const solicitar = useSolicitarCotizacion();
+  const { data: paises } = usePaises();
+
   const agente = user?.NombreCompletoUsuario?.trim() ?? '';
 
+  const countries = useMemo<SelectOption[]>(
+    () => (paises ?? []).map((p) => ({ value: String(p.CodigoPais), label: p.DescripcionPais })),
+    [paises],
+  );
+
   const idTypes = useMemo<SelectOption[]>(() => [
-    { value: 'DNI', label: t.dni },
-    { value: 'PAS', label: t.passport },
-    { value: 'OTR', label: t.other },
+    { value: '01', label: t.rif },
+    { value: '02', label: t.passport },
+    { value: '03', label: t.dni },
   ], [t]);
 
   const genders = useMemo<SelectOption[]>(() => [
@@ -223,7 +270,45 @@ export default function NuevaCotizacionScreen() {
   };
 
   const onGenerate = () => {
-    if (validate()) setSnack(t.pending);
+    if (!validate() || solicitar.isPending) return;
+    solicitar.mutate(
+      {
+        fechaInicioValidez: form.fechaInicio,
+        nombreSolicitante: form.nombre.trim(),
+        fechaNacimientoSolicitante: form.nacimiento,
+        sexoSolicitante: form.genero as 'M' | 'F',
+        codigoTipoDocumentoIdentidad: form.tipoId,
+        tipoDocumentoIdentidad: form.documento.trim(),
+        codigoPais: Number(form.pais),
+        correo: form.correo.trim(),
+        indicadorConyuge: form.conyuge,
+        ...(form.conyuge
+          ? { fechaNacimientoConyuge: form.nacimientoConyuge, sexoConyuge: form.generoConyuge as 'M' | 'F' }
+          : {}),
+        numeroDependientes: Number(form.dependientes) || 0,
+        trasplanteOrganos: form.trasplante,
+        complicacionesMaternidad: form.maternidad,
+      },
+      {
+        onSuccess: (res) => {
+          setSnack(res.message);
+          if (res.success) {
+            const codigo = Number(res.redirect?.split('/').filter(Boolean).pop());
+            setTimeout(() => {
+              router.replace(
+                (Number.isFinite(codigo) && codigo > 0
+                  ? `/cotizaciones?detalle=${codigo}`
+                  : '/cotizaciones') as any,
+              );
+            }, 900);
+          }
+        },
+        onError: (error: any) => {
+          const msg = error?.response?.data?.message;
+          setSnack(Array.isArray(msg) ? msg.join('\n') : msg ?? t.submitError);
+        },
+      },
+    );
   };
 
   const onClear = () => {
@@ -246,7 +331,8 @@ export default function NuevaCotizacionScreen() {
         onLogout={() => logout.mutate()}
         onHome={() => router.push('/dashboard' as any)}
         onCotizaciones={goBack}
-        labels={{ profile: t.profile, logout: t.logout, language: t.language, home: t.home, quotes: t.quotes }}
+        onSolicitudes={() => router.push('/solicitudes' as any)}
+        onPolizas={() => router.push('/polizas' as any)}
       >
         <View style={styles.titleRow}>
           <IconButton icon="arrow-left" onPress={goBack} size={22} />
@@ -269,13 +355,15 @@ export default function NuevaCotizacionScreen() {
               onChange={(v) => update('fechaInicio', v)}
               minDate={today()}
               error={errors.fechaInicio}
+              locale={lang}
               style={styles.half}
             />
             <SelectField
               label={t.country}
               value={form.pais}
-              options={COUNTRIES}
+              options={countries}
               onChange={(v) => update('pais', v)}
+              placeholder={t.select}
               error={errors.pais}
               style={styles.half}
             />
@@ -316,6 +404,7 @@ export default function NuevaCotizacionScreen() {
               onChange={(v) => update('nacimiento', v)}
               maxDate={today()}
               error={errors.nacimiento}
+              locale={lang}
               style={styles.half}
             />
             <SelectField
@@ -348,6 +437,7 @@ export default function NuevaCotizacionScreen() {
                 onChange={(v) => update('nacimientoConyuge', v)}
                 maxDate={today()}
                 error={errors.nacimientoConyuge}
+                locale={lang}
                 style={styles.half}
               />
               <SelectField
@@ -381,6 +471,8 @@ export default function NuevaCotizacionScreen() {
               mode="contained"
               icon="tag-outline"
               onPress={onGenerate}
+              loading={solicitar.isPending}
+              disabled={solicitar.isPending}
               buttonColor={palette.indigo[500]}
               textColor="#FFFFFF"
               style={[styles.action, { borderRadius: roundness - 6 }]}

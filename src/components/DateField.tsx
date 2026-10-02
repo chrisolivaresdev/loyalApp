@@ -1,7 +1,11 @@
-import DateTimePicker, { DateTimePickerEvent } from '@react-native-community/datetimepicker';
 import { useState } from 'react';
-import { Platform, StyleSheet, TouchableOpacity, View } from 'react-native';
+import { StyleSheet, TouchableOpacity, View } from 'react-native';
 import { Text, TextInput, useTheme } from 'react-native-paper';
+import { DatePickerModal, en, es, pt, registerTranslation } from 'react-native-paper-dates';
+
+registerTranslation('es', es);
+registerTranslation('en', en);
+registerTranslation('pt', pt);
 
 interface DateFieldProps {
   label: string;
@@ -12,6 +16,7 @@ interface DateFieldProps {
   style?: object;
   minDate?: string;
   maxDate?: string;
+  locale?: 'es' | 'en' | 'pt';
 }
 
 function toDate(value: string): Date {
@@ -36,44 +41,19 @@ export function DateField({
   style,
   minDate,
   maxDate,
+  locale = 'es',
 }: DateFieldProps) {
   const { colors, roundness } = useTheme();
   const [show, setShow] = useState(false);
-  const [text, setText] = useState(value);
 
-  const onChangeNative = (event: DateTimePickerEvent, selected?: Date) => {
-    setShow(false);
-    if (event.type === 'set' && selected) {
-      onChange(toString(selected));
-    }
-  };
-
-  const onTextChange = (v: string) => {
-    setText(v);
-    if (/^\d{4}-\d{2}-\d{2}$/.test(v)) {
-      onChange(v);
-    }
-  };
-
-  const isWeb = Platform.OS === 'web';
-
-  const picker = show ? (
-    <DateTimePicker
-      value={toDate(value) || new Date()}
-      mode="date"
-      display="default"
-      onChange={onChangeNative}
-      minimumDate={minDate ? toDate(minDate) : undefined}
-      maximumDate={maxDate ? toDate(maxDate) : undefined}
-    />
-  ) : null;
+  const validDate = /^\d{4}-\d{2}-\d{2}$/.test(value) ? toDate(value) : undefined;
 
   return (
     <View style={[styles.wrap, style]}>
       <Text variant="labelLarge" style={[styles.label, { color: colors.onSurface }]}>{label}</Text>
       <TouchableOpacity
-        activeOpacity={isWeb ? 1 : 0.7}
-        onPress={() => !isWeb && setShow(true)}
+        activeOpacity={0.7}
+        onPress={() => setShow(true)}
         style={[
           styles.field,
           {
@@ -86,20 +66,33 @@ export function DateField({
         <TextInput
           mode="outlined"
           dense
-          value={value || text}
-          onChangeText={onTextChange}
+          value={value}
           placeholder={placeholder || 'AAAA-MM-DD'}
           error={!!error}
-          editable={isWeb}
-          pointerEvents={isWeb ? 'auto' : 'none'}
+          editable={false}
+          pointerEvents="none"
           autoCapitalize="none"
           outlineStyle={{ borderRadius: roundness - 4, borderWidth: 0, borderColor: 'transparent' }}
           style={{ backgroundColor: 'transparent', flex: 1, fontSize: 14 }}
-          right={<TextInput.Icon icon="calendar-month-outline" color={colors.onSurfaceVariant} onPress={() => setShow(true)} />}
+          right={<TextInput.Icon icon="calendar-month-outline" color={colors.onSurfaceVariant} />}
         />
       </TouchableOpacity>
       {!!error && <Text variant="bodySmall" style={{ color: colors.error }}>{error}</Text>}
-      {picker}
+      <DatePickerModal
+        locale={locale}
+        mode="single"
+        visible={show}
+        date={validDate}
+        onDismiss={() => setShow(false)}
+        onConfirm={({ date }) => {
+          setShow(false);
+          if (date) onChange(toString(date));
+        }}
+        validRange={{
+          startDate: minDate ? toDate(minDate) : undefined,
+          endDate: maxDate ? toDate(maxDate) : undefined,
+        }}
+      />
     </View>
   );
 }

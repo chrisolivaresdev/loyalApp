@@ -8,7 +8,7 @@ import { KeyboardAvoidingView, Platform, ScrollView, StyleSheet, View } from 're
 import { Button, HelperText, Icon, Text, TextInput, TouchableRipple, useTheme } from 'react-native-paper';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-type Lang = 'es' | 'en';
+type Lang = 'es' | 'en' | 'pt';
 
 const labels: Record<Lang, { [key: string]: string }> = {
   es: {
@@ -36,6 +36,19 @@ const labels: Record<Lang, { [key: string]: string }> = {
     highlights: 'Real-time production and commission tracking;Quotes, applications and policies in one place;Secure access from web and mobile devices',
     company: 'Loyal Insurance Group',
     secure: 'Secure connection · Your data is protected',
+  },
+  pt: {
+    brand: 'Portal do Agente',
+    tagline: 'Toda a informação da sua carteira, produção e comissões, organizada para vender mais e melhor.',
+    login: 'Entrar',
+    loginHint: 'Insira suas credenciais para acessar seu painel',
+    username: 'Usuário',
+    password: 'Senha',
+    submit: 'Entrar',
+    error: 'Usuário ou senha incorretos',
+    highlights: 'Acompanhamento de produção e comissões em tempo real;Cotações, solicitações e apólices em um só lugar;Acesso seguro pela web e dispositivos móveis',
+    company: 'Loyal Insurance Group',
+    secure: 'Conexão segura · Seus dados estão protegidos',
   },
 };
 
@@ -132,6 +145,11 @@ export default function LoginScreen() {
             <TouchableRipple onPress={() => setLang('en')} borderless style={{ borderRadius: roundness - 6 }}>
               <View style={[styles.langBtn, lang === 'en' && { backgroundColor: colors.primary }]}>
                 <Text variant="labelSmall" style={{ color: lang === 'en' ? colors.onPrimary : colors.onSurface }}>EN</Text>
+              </View>
+            </TouchableRipple>
+            <TouchableRipple onPress={() => setLang('pt')} borderless style={{ borderRadius: roundness - 6 }}>
+              <View style={[styles.langBtn, lang === 'pt' && { backgroundColor: colors.primary }]}>
+                <Text variant="labelSmall" style={{ color: lang === 'pt' ? colors.onPrimary : colors.onSurface }}>PT</Text>
               </View>
             </TouchableRipple>
           </View>

@@ -48,6 +48,24 @@ const labels: Record<Lang, { [key: string]: string }> = {
     personalInfo: 'Personal information',
     account: 'Account',
   },
+  pt: {
+    profile: 'Meu perfil',
+    subtitle: 'Gerencie suas informações de agente',
+    name: 'Nome completo',
+    agentCode: 'Código do agente',
+    role: 'Função',
+    email: 'E-mail',
+    phone: 'Telefone',
+    country: 'País',
+    image: 'URL da imagem',
+    changeImage: 'Alterar imagem',
+    save: 'Salvar alterações',
+    saved: 'Perfil atualizado',
+    required: 'Obrigatório',
+    back: 'Voltar',
+    personalInfo: 'Informações pessoais',
+    account: 'Conta',
+  },
 };
 
 const getInitials = (name: string) =>
@@ -87,6 +105,23 @@ const COUNTRIES: Record<Lang, { value: string; label: string }[]> = {
     { value: 'BO', label: 'Bolivia' },
     { value: 'PY', label: 'Paraguay' },
     { value: 'UY', label: 'Uruguay' },
+  ],
+  pt: [
+    { value: 'US', label: 'Estados Unidos' },
+    { value: 'VE', label: 'Venezuela' },
+    { value: 'CO', label: 'Colômbia' },
+    { value: 'MX', label: 'México' },
+    { value: 'AR', label: 'Argentina' },
+    { value: 'CL', label: 'Chile' },
+    { value: 'PE', label: 'Peru' },
+    { value: 'DO', label: 'República Dominicana' },
+    { value: 'PA', label: 'Panamá' },
+    { value: 'CR', label: 'Costa Rica' },
+    { value: 'GT', label: 'Guatemala' },
+    { value: 'EC', label: 'Equador' },
+    { value: 'BO', label: 'Bolívia' },
+    { value: 'PY', label: 'Paraguai' },
+    { value: 'UY', label: 'Uruguai' },
   ],
 };
 
@@ -151,8 +186,9 @@ export default function PerfilScreen() {
       onProfile={() => {}}
       onHome={() => router.push('/dashboard' as any)}
       onCotizaciones={() => router.push('/cotizaciones' as any)}
+      onSolicitudes={() => router.push('/solicitudes' as any)}
+      onPolizas={() => router.push('/polizas' as any)}
       onLogout={() => logout.mutate()}
-      labels={{ profile: t.profile, logout: t.back, language: 'Idioma', home: 'Inicio', quotes: 'Cotizaciones' }}
     >
       <KeyboardAvoidingView
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}

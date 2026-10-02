@@ -116,6 +116,51 @@ const labels: Record<Lang, { [key: string]: string }> = {
     activeAgent: 'Active agent',
     noData: 'No data',
   },
+  pt: {
+    dashboard: 'Painel principal',
+    home: 'Início',
+    greeting: 'Bem-vindo de volta',
+    period: 'Período atual',
+    metrics: 'Indicadores-chave',
+    policies: 'Apólices ativas',
+    premiums: 'Prêmios',
+    commissions: 'Comissões',
+    goal: 'Meta',
+    goalTitle: 'Cumprimento da meta anual',
+    achieved: 'Produção',
+    summary: 'Atividade comercial',
+    charts: 'Gráficos',
+    quotes: 'Cotações',
+    requests: 'Solicitações',
+    lastRequest: 'Última solicitação',
+    lastPayment: 'Último pagamento de comissões',
+    breakdownPolicies: 'Carteira - Apólices',
+    breakdownPremiums: 'Carteira - Prêmios',
+    active: 'Ativas',
+    gracePeriod: 'Período de carência',
+    pendingPayment: 'Pagamento pendente',
+    total: 'Total',
+    newBusiness: 'Novos negócios',
+    renewals: 'Renovações',
+    cancelled: 'Canceladas',
+    pending: 'Pagamentos pendentes',
+    language: 'Idioma',
+    profile: 'Meu perfil',
+    close: 'Fechar',
+    logout: 'Sair',
+    retry: 'Tentar novamente',
+    error: 'Não foi possível carregar suas informações',
+    errorHint: 'Verifique sua conexão e tente novamente.',
+    email: 'E-mail',
+    role: 'Perfil',
+    agency: 'Página',
+    agentCode: 'Código',
+    address: 'Endereço',
+    mobile: 'Celular',
+    phone: 'Telefone',
+    activeAgent: 'Agente ativo',
+    noData: 'Sem dados',
+  },
 };
 
 const formatCurrency = (n?: number | null) =>
@@ -127,7 +172,8 @@ const formatDate = (value: string | null | undefined, lang: Lang) => {
   if (!value) return null;
   const d = new Date(value);
   if (Number.isNaN(d.getTime())) return null;
-  return d.toLocaleDateString(lang === 'es' ? 'es-ES' : 'en-US', { day: '2-digit', month: 'short', year: 'numeric' });
+  const locales: Record<Lang, string> = { es: 'es-ES', en: 'en-US', pt: 'pt-BR' };
+  return d.toLocaleDateString(locales[lang], { day: '2-digit', month: 'short', year: 'numeric' });
 };
 
 const getInitials = (name: string) =>
@@ -210,7 +256,8 @@ export default function DashboardScreen() {
         onLogout={() => logout.mutate()}
         onHome={() => {}}
         onCotizaciones={() => router.push('/cotizaciones' as any)}
-        labels={{ profile: t.profile, logout: t.logout, language: t.language, home: t.home, quotes: t.quotes }}
+        onSolicitudes={() => router.push('/solicitudes' as any)}
+        onPolizas={() => router.push('/polizas' as any)}
       >
         {!isMobile && (
           <View style={styles.hero}>

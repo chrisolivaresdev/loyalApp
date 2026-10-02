@@ -35,7 +35,7 @@ interface Pais {
   longitud: number;
 }
 
-type ChartLang = 'es' | 'en';
+type ChartLang = 'es' | 'en' | 'pt';
 
 interface ChartsSectionProps {
   productos: Producto[] | undefined;
@@ -78,6 +78,23 @@ const CHART_LABELS: Record<ChartLang, Record<string, string>> = {
     newBiz: 'New',
     renewals: 'Renew',
     months: 'Jan,Feb,Mar,Apr,May,Jun,Jul,Aug,Sep,Oct,Nov,Dec',
+  },
+  pt: {
+    products: 'Comparador de produtos',
+    inPremiums: 'em prêmios',
+    noData: 'Sem dados',
+    policies: 'apólices',
+    commissions: 'comissões',
+    sales: 'Tendência de vendas',
+    avgPerPeriod: 'média / período',
+    individual: 'Individual',
+    double: 'Duplo',
+    master: 'Master',
+    countries: 'Distribuição por país',
+    countriesWithPolicies: 'países com apólices ativas',
+    newBiz: 'Novo',
+    renewals: 'Renov',
+    months: 'Jan,Fev,Mar,Abr,Mai,Jun,Jul,Ago,Set,Out,Nov,Dez',
   },
 };
 
