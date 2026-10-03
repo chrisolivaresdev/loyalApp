@@ -1,5 +1,5 @@
 import { StyleSheet, View } from 'react-native';
-import { Icon, Text, useTheme } from 'react-native-paper';
+import { Button, Icon, Text, useTheme } from 'react-native-paper';
 
 interface StatCardProps {
   icon: string;
@@ -7,9 +7,10 @@ interface StatCardProps {
   value: string | number;
   hint?: string;
   accent?: string;
+  action?: { label: string; onPress: () => void };
 }
 
-export function StatCard({ icon, label, value, hint, accent }: StatCardProps) {
+export function StatCard({ icon, label, value, hint, accent, action }: StatCardProps) {
   const { colors, roundness } = useTheme();
   const color = accent ?? colors.primary;
 
@@ -44,6 +45,19 @@ export function StatCard({ icon, label, value, hint, accent }: StatCardProps) {
         <Text variant="bodySmall" style={{ color: colors.onSurfaceVariant }} numberOfLines={1}>
           {hint}
         </Text>
+      )}
+      {!!action && (
+        <Button
+          mode="outlined"
+          compact
+          onPress={action.onPress}
+          textColor={color}
+          style={{ alignSelf: 'flex-start', marginTop: 6, borderColor: `${color}66` }}
+          icon="chevron-right"
+          contentStyle={{ flexDirection: 'row-reverse' }}
+        >
+          {action.label}
+        </Button>
       )}
     </View>
   );

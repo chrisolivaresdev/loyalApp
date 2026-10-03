@@ -1,26 +1,32 @@
+import { OPCION } from '@/api/agent';
+import { reportePolizasUrl } from '@/api/certificados';
 import { PolizaActiva } from '@/api/polizas';
 import { AppShell, Lang } from '@/components/AppShell';
+import { Paginator } from '@/components/Paginator';
 import { SelectField } from '@/components/SelectField';
 import { useLogout } from '@/hooks/useAuth';
+import { usePermisos, useRequirePermiso } from '@/hooks/usePermisos';
 import { usePolizasActivas } from '@/hooks/usePolizas';
 import { useResponsive } from '@/hooks/useResponsive';
 import { useAuthStore } from '@/stores/auth';
 import { useSettingsStore } from '@/stores/settings';
 import { palette } from '@/theme';
+import * as FileSystem from 'expo-file-system/legacy';
 import { useRouter } from 'expo-router';
+import * as Sharing from 'expo-sharing';
 import { useEffect, useMemo, useState } from 'react';
-import { StyleSheet, View } from 'react-native';
+import { Platform, StyleSheet, View } from 'react-native';
 import {
-    ActivityIndicator,
-    Button,
-    Divider,
-    Icon,
-    IconButton,
-    Searchbar,
-    Text,
-    TextInput,
-    TouchableRipple,
-    useTheme,
+  ActivityIndicator,
+  Button,
+  Divider,
+  Icon,
+  IconButton,
+  Searchbar,
+  Text,
+  TextInput,
+  TouchableRipple,
+  useTheme
 } from 'react-native-paper';
 
 const labels = {
@@ -57,6 +63,9 @@ const labels = {
     cancelled: 'Cancelada',
     newBusiness: 'Nuevo Negocio',
     renewals: 'Renovaciones',
+    exportExcel: 'Excel',
+    exportPdf: 'PDF',
+    exporting: 'Exportando…',
   },
   en: {
     policies: 'Policies',
@@ -91,6 +100,9 @@ const labels = {
     cancelled: 'Cancelled',
     newBusiness: 'New Business',
     renewals: 'Renewals',
+    exportExcel: 'Excel',
+    exportPdf: 'PDF',
+    exporting: 'Exporting…',
   },
   pt: {
     policies: 'Apólices',
@@ -125,6 +137,9 @@ const labels = {
     cancelled: 'Cancelada',
     newBusiness: 'Novo Negócio',
     renewals: 'Renovações',
+    exportExcel: 'Excel',
+    exportPdf: 'PDF',
+    exporting: 'Exportando…',
   },
 };
 
@@ -179,15 +194,19 @@ function EstadoChip({ desc }: { desc: string }) {
   );
 }
 
-function PolizaCard({ p, t, lang }: { p: PolizaActiva; t: T; lang: Lang }) {
+function PolizaCard({ p, t, lang, onDetail, showDetail }: { p: PolizaActiva; t: T; lang: Lang; onDetail: () => void; showDetail: boolean }) {
   const { colors, roundness } = useTheme();
   return (
+    <TouchableRipple onPress={showDetail ? onDetail : undefined} borderless style={{ borderRadius: roundness + 2 }}>
     <View style={[styles.card, { backgroundColor: colors.surface, borderColor: colors.outlineVariant, borderRadius: roundness + 2 }]}>
       <View style={styles.cardTop}>
         <View style={[styles.codeBadge, { backgroundColor: palette.indigo[50] }]}>
           <Text variant="labelLarge" style={{ color: palette.indigo[600] }}>{p.numeroPoliza.trim() || `#${p.codigoCertificado}`}</Text>
         </View>
-        <EstadoChip desc={p.descripcionEstadoCertificado} />
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+          {showDetail && <IconButton icon="eye-outline" size={18} onPress={onDetail} style={{ margin: 0 }} />}
+          <EstadoChip desc={p.descripcionEstadoCertificado} />
+        </View>
       </View>
       <Text variant="titleMedium" numberOfLines={1}>{p.nombreCompleto}</Text>
       <Text variant="bodySmall" style={{ color: colors.onSurfaceVariant }} numberOfLines={1}>
@@ -211,94 +230,38 @@ function PolizaCard({ p, t, lang }: { p: PolizaActiva; t: T; lang: Lang }) {
         <Text variant="titleMedium" style={{ color: palette.indigo[600] }}>{fmtMoney(p.prima)}</Text>
       </View>
     </View>
+    </TouchableRipple>
   );
 }
 
-function PolizaRow({ p, t, lang }: { p: PolizaActiva; t: T; lang: Lang }) {
+function PolizaRow({ p, t, lang, onDetail, showDetail }: { p: PolizaActiva; t: T; lang: Lang; onDetail: () => void; showDetail: boolean }) {
   const { colors } = useTheme();
   return (
-    <View style={[styles.tr, { borderBottomColor: colors.outlineVariant }]}>
-      <Text variant="labelLarge" style={[styles.colPolicy, { color: palette.indigo[600] }]}>{p.numeroPoliza.trim() || `#${p.codigoCertificado}`}</Text>
-      <View style={styles.colHolder}>
-        <Text variant="bodyMedium" numberOfLines={1} style={{ fontFamily: 'Inter_600SemiBold' }}>{p.nombreCompleto}</Text>
-        <Text variant="bodySmall" numberOfLines={1} style={{ color: colors.onSurfaceVariant }}>
-          {p.descripcionPoliza} · {p.descripcionPlan}
-        </Text>
-      </View>
-      <Text variant="bodyMedium" style={styles.colVenta} numberOfLines={1}>{p.descripcionTipoVenta}</Text>
-      <Text variant="bodyMedium" style={styles.colCountry} numberOfLines={1}>{p.descripcionPais}</Text>
-      <Text variant="bodyMedium" style={styles.colDate}>{fmtDate(p.fechaInicioVigencia, lang)}</Text>
-      <Text variant="bodyMedium" style={styles.colPremium} numberOfLines={1}>{fmtMoney(p.prima)}</Text>
-      <View style={styles.colStatus}>
-        <EstadoChip desc={p.descripcionEstadoCertificado} />
-      </View>
-    </View>
-  );
-}
-
-const PAGE_SIZES = [10, 25, 50];
-
-function pageWindow(current: number, total: number, span: number) {
-  const half = Math.floor(span / 2);
-  const start = Math.max(1, Math.min(current - half, total - span + 1));
-  const end = Math.min(total, start + span - 1);
-  return Array.from({ length: end - start + 1 }, (_, i) => start + i);
-}
-
-function Paginator({ page, totalPages, total, limit, onPage, onLimit, loading, t, compact }: {
-  page: number; totalPages: number; total: number; limit: number;
-  onPage: (p: number) => void; onLimit: (l: number) => void; loading: boolean; t: T; compact: boolean;
-}) {
-  const { colors, roundness } = useTheme();
-  const from = total === 0 ? 0 : (page - 1) * limit + 1;
-  const to = Math.min(total, page * limit);
-  return (
-    <View style={[styles.paginator, compact && styles.paginatorCompact, { borderTopColor: colors.outlineVariant }]}>
-      <View style={styles.paginatorInfo}>
-        <Text variant="bodySmall" style={{ color: colors.onSurfaceVariant }}>
-          {from}–{to} {t.of} {total} {t.results}
-        </Text>
-        {loading && <ActivityIndicator animating size={14} />}
-      </View>
-      <View style={styles.paginatorControls}>
-        {!compact && (
-          <View style={styles.pageSizes}>
-            <Text variant="bodySmall" style={{ color: colors.onSurfaceVariant }}>{t.perPage}</Text>
-            {PAGE_SIZES.map((s) => {
-              const active = s === limit;
-              return (
-                <TouchableRipple key={s} onPress={() => onLimit(s)} borderless style={{ borderRadius: roundness - 6 }}>
-                  <View style={[styles.pageBtn, active && { backgroundColor: palette.indigo[500] }]}>
-                    <Text variant="labelMedium" style={{ color: active ? '#FFFFFF' : colors.onSurface }}>{s}</Text>
-                  </View>
-                </TouchableRipple>
-              );
-            })}
-          </View>
-        )}
-        <View style={styles.pages}>
-          <IconButton icon="chevron-double-left" size={18} disabled={page <= 1} onPress={() => onPage(1)} />
-          <IconButton icon="chevron-left" size={18} disabled={page <= 1} onPress={() => onPage(page - 1)} />
-          {pageWindow(page, totalPages, compact ? 3 : 5).map((p) => {
-            const active = p === page;
-            return (
-              <TouchableRipple key={p} onPress={() => onPage(p)} borderless style={{ borderRadius: roundness - 6 }}>
-                <View style={[styles.pageBtn, active && { backgroundColor: palette.indigo[500] }]}>
-                  <Text variant="labelMedium" style={{ color: active ? '#FFFFFF' : colors.onSurface }}>{p}</Text>
-                </View>
-              </TouchableRipple>
-            );
-          })}
-          <IconButton icon="chevron-right" size={18} disabled={page >= totalPages} onPress={() => onPage(page + 1)} />
-          <IconButton icon="chevron-double-right" size={18} disabled={page >= totalPages} onPress={() => onPage(totalPages)} />
+    <TouchableRipple onPress={showDetail ? onDetail : undefined} borderless>
+      <View style={[styles.tr, { borderBottomColor: colors.outlineVariant }]}>
+        <Text variant="labelLarge" style={[styles.colPolicy, { color: palette.indigo[600] }]}>{p.numeroPoliza.trim() || `#${p.codigoCertificado}`}</Text>
+        <View style={styles.colHolder}>
+          <Text variant="bodyMedium" numberOfLines={1} style={{ fontFamily: 'Inter_600SemiBold' }}>{p.nombreCompleto}</Text>
+          <Text variant="bodySmall" numberOfLines={1} style={{ color: colors.onSurfaceVariant }}>
+            {p.descripcionPoliza} · {p.descripcionPlan}
+          </Text>
         </View>
+        <Text variant="bodyMedium" style={styles.colVenta} numberOfLines={1}>{p.descripcionTipoVenta}</Text>
+        <Text variant="bodyMedium" style={styles.colCountry} numberOfLines={1}>{p.descripcionPais}</Text>
+        <Text variant="bodyMedium" style={styles.colDate}>{fmtDate(p.fechaInicioVigencia, lang)}</Text>
+        <Text variant="bodyMedium" style={styles.colPremium} numberOfLines={1}>{fmtMoney(p.prima)}</Text>
+        <View style={styles.colStatus}>
+          <EstadoChip desc={p.descripcionEstadoCertificado} />
+        </View>
+        {showDetail && <IconButton icon="eye-outline" size={18} onPress={onDetail} style={{ margin: 0, width: 28 }} />}
       </View>
-    </View>
+    </TouchableRipple>
   );
 }
 
 export default function PolizasScreen() {
   const user = useAuthStore((s) => s.user);
+  const allowed = useRequirePermiso(OPCION.cartera);
   const [titular, setTitular] = useState('');
   const [poliza, setPoliza] = useState('');
   const [producto, setProducto] = useState('');
@@ -324,7 +287,10 @@ export default function PolizasScreen() {
 
   useEffect(() => { setPage(1); }, [filtros]);
 
-  const { data, isLoading, isError, error, refetch, isRefetching, isFetching } = usePolizasActivas(filtros, page, limit);
+  const { canSee } = usePermisos();
+  const canDetail = canSee(OPCION.consultarPoliza);
+  const { data, isLoading, isError, error, refetch, isRefetching, isFetching } = usePolizasActivas(filtros, page, limit, canSee(OPCION.cartera));
+  const [exporting, setExporting] = useState('');
   const logout = useLogout();
   const router = useRouter();
   const { colors, roundness } = useTheme();
@@ -342,8 +308,32 @@ export default function PolizasScreen() {
 
   const hasFilters = !!(titular || poliza || producto || estado || tipoVenta);
   const clearFilters = () => { setTitular(''); setPoliza(''); setProducto(''); setEstado(''); setTipoVenta(''); };
+
+  const exportar = async (formato: 'excel' | 'pdf') => {
+    const url = reportePolizasUrl(formato, {
+      titular: debounced.titular || undefined,
+      poliza: debounced.poliza || undefined,
+      descripcionPoliza: debounced.producto || undefined,
+      estado: estado || undefined,
+      tipoVenta: tipoVenta || undefined,
+    });
+    const nombre = `polizas.${formato === 'excel' ? 'xlsx' : 'pdf'}`;
+    try {
+      setExporting(formato);
+      if (Platform.OS === 'web') {
+        window.open(url, '_blank');
+      } else {
+        const { uri } = await FileSystem.downloadAsync(url, `${FileSystem.cacheDirectory}${nombre}`);
+        if (await Sharing.isAvailableAsync()) await Sharing.shareAsync(uri, { dialogTitle: nombre });
+      }
+    } finally {
+      setExporting('');
+    }
+  };
   const goPage = (p: number) => setPage(Math.min(Math.max(1, p), totalPages));
   const changeLimit = (value: number) => { setLimit(value); setPage(1); };
+
+  if (!allowed) return null;
 
   return (
     <AppShell
@@ -363,6 +353,14 @@ export default function PolizasScreen() {
         <View style={{ flex: 1, gap: 2 }}>
           <Text variant="headlineSmall">{t.policies}</Text>
           <Text variant="bodyMedium" style={{ color: colors.onSurfaceVariant }}>{t.subtitle}</Text>
+        </View>
+        <View style={{ flexDirection: 'row', gap: 6 }}>
+          <Button mode="outlined" icon="file-excel-outline" compact onPress={() => exportar('excel')} loading={exporting === 'excel'} disabled={!!exporting} style={{ borderRadius: roundness - 4 }}>
+            {exporting === 'excel' ? t.exporting : t.exportExcel}
+          </Button>
+          <Button mode="outlined" icon="file-pdf-box" compact onPress={() => exportar('pdf')} loading={exporting === 'pdf'} disabled={!!exporting} style={{ borderRadius: roundness - 4 }}>
+            {exporting === 'pdf' ? t.exporting : t.exportPdf}
+          </Button>
         </View>
       </View>
 
@@ -445,7 +443,7 @@ export default function PolizasScreen() {
             <Text variant="labelMedium" style={[styles.colStatus, { color: colors.onSurfaceVariant }]}>{t.state}</Text>
           </View>
           {polizas.map((p) => (
-            <PolizaRow key={p.codigoCertificado} p={p} t={t} lang={lang} />
+            <PolizaRow key={p.codigoCertificado} p={p} t={t} lang={lang} showDetail={canDetail} onDetail={() => router.push(`/polizas/${p.codigoCertificado}` as any)} />
           ))}
           <Paginator
             page={meta?.page ?? page}
@@ -455,14 +453,13 @@ export default function PolizasScreen() {
             onPage={goPage}
             onLimit={changeLimit}
             loading={isFetching}
-            t={t}
-            compact={false}
+            labels={t}
           />
         </View>
       ) : (
         <View style={styles.list}>
           {polizas.map((p) => (
-            <PolizaCard key={p.codigoCertificado} p={p} t={t} lang={lang} />
+            <PolizaCard key={p.codigoCertificado} p={p} t={t} lang={lang} showDetail={canDetail} onDetail={() => router.push(`/polizas/${p.codigoCertificado}` as any)} />
           ))}
           <View style={[styles.table, { backgroundColor: colors.surface, borderColor: colors.outlineVariant, borderRadius: roundness }]}>
             <Paginator
@@ -473,7 +470,7 @@ export default function PolizasScreen() {
               onPage={goPage}
               onLimit={changeLimit}
               loading={isFetching}
-              t={t}
+              labels={t}
               compact
             />
           </View>

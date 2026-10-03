@@ -1,7 +1,10 @@
+import { OPCION } from '@/api/agent';
 import { Cotizacion } from '@/api/cotizaciones';
 import { AppShell, Lang } from '@/components/AppShell';
+import { Paginator } from '@/components/Paginator';
 import { useLogout } from '@/hooks/useAuth';
 import { useCotizaciones } from '@/hooks/useCotizaciones';
+import { usePermisos, useRequirePermiso } from '@/hooks/usePermisos';
 import { useResponsive } from '@/hooks/useResponsive';
 import { useAuthStore } from '@/stores/auth';
 import { useSettingsStore } from '@/stores/settings';
@@ -16,7 +19,6 @@ import {
   Divider,
   FAB,
   Icon,
-  IconButton,
   Searchbar,
   Text,
   TouchableRipple,
@@ -300,79 +302,12 @@ function QuoteRow({ c, t, onPress }: { c: Cotizacion; t: Record<string, string>;
 }
 
 
-const PAGE_SIZES = [10, 25, 50];
-
-function pageWindow(page: number, totalPages: number, size = 5): number[] {
-  const half = Math.floor(size / 2);
-  let start = Math.max(1, page - half);
-  const end = Math.min(totalPages, start + size - 1);
-  start = Math.max(1, end - size + 1);
-  return Array.from({ length: end - start + 1 }, (_, i) => start + i);
-}
-
-function Paginator({
-  page, totalPages, total, limit, onPage, onLimit, loading, t, compact,
-}: {
-  page: number;
-  totalPages: number;
-  total: number;
-  limit: number;
-  onPage: (p: number) => void;
-  onLimit: (l: number) => void;
-  loading?: boolean;
-  t: Record<string, string>;
-  compact: boolean;
-}) {
-  const { colors, roundness } = useTheme();
-  const from = total === 0 ? 0 : (page - 1) * limit + 1;
-  const to = Math.min(total, page * limit);
-  return (
-    <View style={[styles.paginator, compact && styles.paginatorCompact, { borderTopColor: colors.outlineVariant }]}>
-      <View style={styles.paginatorInfo}>
-        <Text variant="bodySmall" style={{ color: colors.onSurfaceVariant }}>
-          {from}–{to} {t.of} {total} {t.results}
-        </Text>
-        {loading && <ActivityIndicator animating size={14} />}
-      </View>
-      <View style={styles.paginatorControls}>
-        {!compact && (
-          <View style={styles.pageSizes}>
-            <Text variant="bodySmall" style={{ color: colors.onSurfaceVariant }}>{t.perPage}</Text>
-            {PAGE_SIZES.map((s) => {
-              const active = s === limit;
-              return (
-                <TouchableRipple key={s} onPress={() => onLimit(s)} borderless style={{ borderRadius: roundness - 6 }}>
-                  <View style={[styles.pageBtn, active && { backgroundColor: palette.indigo[500] }]}>
-                    <Text variant="labelMedium" style={{ color: active ? '#FFFFFF' : colors.onSurface }}>{s}</Text>
-                  </View>
-                </TouchableRipple>
-              );
-            })}
-          </View>
-        )}
-        <View style={styles.pages}>
-          <IconButton icon="chevron-double-left" size={18} disabled={page <= 1} onPress={() => onPage(1)} />
-          <IconButton icon="chevron-left" size={18} disabled={page <= 1} onPress={() => onPage(page - 1)} />
-          {pageWindow(page, totalPages, compact ? 3 : 5).map((p) => {
-            const active = p === page;
-            return (
-              <TouchableRipple key={p} onPress={() => onPage(p)} borderless style={{ borderRadius: roundness - 6 }}>
-                <View style={[styles.pageBtn, active && { backgroundColor: palette.indigo[500] }]}>
-                  <Text variant="labelMedium" style={{ color: active ? '#FFFFFF' : colors.onSurface }}>{p}</Text>
-                </View>
-              </TouchableRipple>
-            );
-          })}
-          <IconButton icon="chevron-right" size={18} disabled={page >= totalPages} onPress={() => onPage(page + 1)} />
-          <IconButton icon="chevron-double-right" size={18} disabled={page >= totalPages} onPress={() => onPage(totalPages)} />
-        </View>
-      </View>
-    </View>
-  );
-}
-
 export default function CotizacionesScreen() {
   const user = useAuthStore((s) => s.user);
+  const allowed = useRequirePermiso(OPCION.cotizaciones);
+  const { canSee, canExecute } = usePermisos();
+  const canCreate = canExecute(OPCION.cotizaciones);
+  const modOk = canSee(OPCION.cotizaciones);
   const [estado, setEstado] = useState<string | undefined>(undefined);
   const [query, setQuery] = useState('');
   const [debouncedQuery, setDebouncedQuery] = useState('');
@@ -390,8 +325,8 @@ export default function CotizacionesScreen() {
     return () => clearTimeout(id);
   }, [query]);
 
-  const { data, isLoading, isError, error, refetch, isRefetching, isFetching } = useCotizaciones(estado, page, limit, debouncedQuery);
-  const { data: all } = useCotizaciones(undefined, 1, 100);
+  const { data, isLoading, isError, error, refetch, isRefetching, isFetching } = useCotizaciones(estado, page, limit, debouncedQuery, modOk);
+  const { data: all } = useCotizaciones(undefined, 1, 100, undefined, modOk);
   const logout = useLogout();
   const router = useRouter();
   const { colors, roundness } = useTheme();
@@ -420,6 +355,8 @@ export default function CotizacionesScreen() {
 
   const goNew = () => router.push('/cotizaciones/nueva' as any);
 
+  if (!allowed) return null;
+
   return (
     <>
       <AppShell
@@ -440,7 +377,7 @@ export default function CotizacionesScreen() {
             <Text variant="headlineSmall">{t.quotes}</Text>
             <Text variant="bodyMedium" style={{ color: colors.onSurfaceVariant }}>{t.subtitle}</Text>
           </View>
-          {isDesktop && (
+          {isDesktop && canCreate && (
             <Button mode="contained" icon="plus" onPress={goNew} style={{ borderRadius: roundness - 4 }}>
               {t.newQuote}
             </Button>
@@ -526,7 +463,7 @@ export default function CotizacionesScreen() {
             </View>
             <Text variant="titleMedium" style={{ marginTop: 12 }}>{t.empty}</Text>
             <Text variant="bodyMedium" style={{ color: colors.onSurfaceVariant, marginTop: 4 }}>{t.emptyHint}</Text>
-            <Button mode="contained" icon="plus" onPress={goNew} style={{ marginTop: 16 }}>{t.newQuote}</Button>
+            {canCreate && <Button mode="contained" icon="plus" onPress={goNew} style={{ marginTop: 16 }}>{t.newQuote}</Button>}
           </View>
         ) : isDesktop ? (
           <View style={[styles.table, { backgroundColor: colors.surface, borderColor: colors.outlineVariant, borderRadius: roundness }]}>
@@ -550,8 +487,7 @@ export default function CotizacionesScreen() {
               onPage={goPage}
               onLimit={changeLimit}
               loading={isFetching}
-              t={t}
-              compact={false}
+              labels={t}
             />
           </View>
         ) : (
@@ -568,7 +504,7 @@ export default function CotizacionesScreen() {
                 onPage={goPage}
                 onLimit={changeLimit}
                 loading={isFetching}
-                t={t}
+                labels={t}
                 compact
               />
             </View>
@@ -576,7 +512,7 @@ export default function CotizacionesScreen() {
         )}
       </AppShell>
 
-      {!isDesktop && (
+      {!isDesktop && canCreate && (
         <FAB icon="plus" label={t.newQuote} onPress={goNew} style={[styles.fab, { backgroundColor: palette.indigo[500] }]} color="#FFFFFF" />
       )}
 

@@ -1,6 +1,8 @@
+import { OPCION } from '@/api/agent';
 import { SolicitudListItem } from '@/api/solicitudes';
 import { AppShell } from '@/components/AppShell';
 import { useLogout } from '@/hooks/useAuth';
+import { usePermisos, useRequirePermiso } from '@/hooks/usePermisos';
 import { useResponsive } from '@/hooks/useResponsive';
 import { useSolicitudes } from '@/hooks/useSolicitudes';
 import { useAuthStore } from '@/stores/auth';
@@ -292,12 +294,14 @@ function Paginator({ page, totalPages, total, limit, onPage, onLimit, loading, t
 
 export default function SolicitudesScreen() {
   const user = useAuthStore((s) => s.user);
+  const allowed = useRequirePermiso(OPCION.solicitudes);
   const [estado, setEstado] = useState('99');
   const [query, setQuery] = useState('');
   const [page, setPage] = useState(1);
   const [limit, setLimit] = useState(10);
 
-  const { data, isLoading, isError, error, refetch, isRefetching, isFetching } = useSolicitudes(estado, page, limit);
+  const { canSee } = usePermisos();
+  const { data, isLoading, isError, error, refetch, isRefetching, isFetching } = useSolicitudes(estado, page, limit, canSee(OPCION.solicitudes));
   const logout = useLogout();
   const router = useRouter();
   const { colors, roundness } = useTheme();
@@ -327,6 +331,8 @@ export default function SolicitudesScreen() {
   const changeEstado = (code: string) => { setEstado(code); setPage(1); };
   const changeLimit = (value: number) => { setLimit(value); setPage(1); };
   const goPage = (p: number) => setPage(Math.min(Math.max(1, p), totalPages));
+
+  if (!allowed) return null;
 
   return (
     <AppShell

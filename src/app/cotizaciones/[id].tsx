@@ -1,7 +1,9 @@
+import { OPCION } from '@/api/agent';
 import { getCotizacionPdf, PrimaConsulta } from '@/api/cotizaciones';
 import { AppShell } from '@/components/AppShell';
 import { useLogout } from '@/hooks/useAuth';
 import { useCotizacion } from '@/hooks/useCotizaciones';
+import { usePermisos, useRequirePermiso } from '@/hooks/usePermisos';
 import { useResponsive } from '@/hooks/useResponsive';
 import { useAuthStore } from '@/stores/auth';
 import { useSettingsStore } from '@/stores/settings';
@@ -11,16 +13,16 @@ import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useEffect, useMemo, useState } from 'react';
 import { Platform, ScrollView, StyleSheet, View } from 'react-native';
 import {
-    ActivityIndicator,
-    Button,
-    Chip,
-    Divider,
-    Icon,
-    IconButton,
-    SegmentedButtons,
-    Snackbar,
-    Text,
-    useTheme
+  ActivityIndicator,
+  Button,
+  Chip,
+  Divider,
+  Icon,
+  IconButton,
+  SegmentedButtons,
+  Snackbar,
+  Text,
+  useTheme
 } from 'react-native-paper';
 
 const labels = {
@@ -254,6 +256,8 @@ function PrimasTable({ primas, t }: { primas: PrimaConsulta[]; t: T }) {
 
 export default function CotizacionDetalleScreen() {
   const router = useRouter();
+  const allowed = useRequirePermiso(OPCION.cotizaciones);
+  const { canSee } = usePermisos();
   const { id } = useLocalSearchParams<{ id: string }>();
   const codigo = Number(id);
   const user = useAuthStore((s) => s.user);
@@ -264,7 +268,7 @@ export default function CotizacionDetalleScreen() {
   const logout = useLogout();
   const t = labels[lang];
 
-  const { data, isLoading, isError, refetch } = useCotizacion(codigo);
+  const { data, isLoading, isError, refetch } = useCotizacion(codigo, canSee(OPCION.cotizaciones));
   const [producto, setProducto] = useState<number | undefined>();
   const [tipoVenta, setTipoVenta] = useState<'01' | '02'>('01');
   const [pdfUrl, setPdfUrl] = useState<string | null>(null);
@@ -441,6 +445,8 @@ export default function CotizacionDetalleScreen() {
       </Button>
     </View>
   );
+
+  if (!allowed) return null;
 
   return (
     <AppShell

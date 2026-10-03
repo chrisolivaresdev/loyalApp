@@ -1,7 +1,11 @@
+import { OPCION } from '@/api/agent';
+import { usePermisos } from '@/hooks/usePermisos';
 import { useResponsive } from '@/hooks/useResponsive';
+import { useAuthStore } from '@/stores/auth';
 import { useSettingsStore } from '@/stores/settings';
 import { palette } from '@/theme';
 import { LinearGradient } from 'expo-linear-gradient';
+import { usePathname, useRouter } from 'expo-router';
 import { ReactNode, useState } from 'react';
 import { ScrollView, StyleSheet, View } from 'react-native';
 import {
@@ -12,7 +16,7 @@ import {
   Menu,
   Text,
   TouchableRipple,
-  useTheme,
+  useTheme
 } from 'react-native-paper';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
@@ -20,20 +24,26 @@ export type Lang = 'es' | 'en' | 'pt';
 
 export interface MenuLabels {
   profile: string;
+  cartera: string;
   logout: string;
   language: string;
   home: string;
   quotes: string;
   requests: string;
   policies: string;
+  commissions: string;
+  staff: string;
+  agents: string;
+  resources: string;
+  cancun: string;
   menu?: string;
   brand?: string;
 }
 
 const MENU_LABELS: Record<Lang, MenuLabels> = {
-  es: { profile: 'Mi perfil', logout: 'Cerrar sesión', language: 'Idioma', home: 'Inicio', quotes: 'Cotizaciones', requests: 'Solicitudes', policies: 'Pólizas' },
-  en: { profile: 'My profile', logout: 'Log out', language: 'Language', home: 'Home', quotes: 'Quotes', requests: 'Requests', policies: 'Policies' },
-  pt: { profile: 'Meu perfil', logout: 'Sair', language: 'Idioma', home: 'Início', quotes: 'Cotações', requests: 'Solicitações', policies: 'Apólices' },
+  es: { profile: 'Mi perfil', cartera: 'Cartera', logout: 'Cerrar sesión', language: 'Idioma', home: 'Inicio', quotes: 'Cotizaciones', requests: 'Solicitudes', policies: 'Pólizas', commissions: 'Comisiones', staff: 'Personal', agents: 'Agentes', resources: 'Recursos', cancun: 'Cancún 2023 Fotos' },
+  en: { profile: 'My profile', cartera: 'Portfolio', logout: 'Log out', language: 'Language', home: 'Home', quotes: 'Quotes', requests: 'Requests', policies: 'Policies', commissions: 'Commissions', staff: 'Staff', agents: 'Agents', resources: 'Resources', cancun: 'Cancun 2023 Photos' },
+  pt: { profile: 'Meu perfil', cartera: 'Carteira', logout: 'Sair', language: 'Idioma', home: 'Início', quotes: 'Cotações', requests: 'Solicitações', policies: 'Apólices', commissions: 'Comissões', staff: 'Equipe', agents: 'Agentes', resources: 'Recursos', cancun: 'Fotos Cancún 2023' },
 };
 
 interface AppShellProps {
@@ -48,6 +58,10 @@ interface AppShellProps {
   onCotizaciones: () => void;
   onSolicitudes: () => void;
   onPolizas: () => void;
+  onComisiones?: () => void;
+  onPersonal?: () => void;
+  onAgentes?: () => void;
+  onRecursos?: () => void;
   labels?: Partial<MenuLabels>;
   children: ReactNode;
 }
@@ -152,18 +166,27 @@ function Brand({ compact = false, light = true, lang = 'es' }: { compact?: boole
   );
 }
 
-type ResolvedShellProps = Omit<AppShellProps, 'labels'> & { labels: MenuLabels };
+type ResolvedShellProps = Omit<AppShellProps, 'labels' | 'onComisiones' | 'onPersonal' | 'onAgentes' | 'onRecursos'> & { labels: MenuLabels; onComisiones: () => void; onPersonal: () => void; onAgentes: () => void; onRecursos: () => void };
 
 export function AppShell(props: AppShellProps) {
   const { isDesktop } = useResponsive();
-  const merged: ResolvedShellProps = { ...props, labels: { ...MENU_LABELS[props.lang], ...props.labels } };
+  const router = useRouter();
+  const merged: ResolvedShellProps = {
+    ...props,
+    labels: { ...MENU_LABELS[props.lang], ...props.labels },
+    onComisiones: props.onComisiones ?? (() => router.push('/comisiones' as any)),
+    onPersonal: props.onPersonal ?? (() => router.push('/personal' as any)),
+    onAgentes: props.onAgentes ?? (() => router.push('/agentes' as any)),
+    onRecursos: props.onRecursos ?? (() => router.push('/recursos' as any)),
+  };
   return isDesktop ? <DesktopShell {...merged} /> : <MobileShell {...merged} />;
 }
 
 function DesktopShell({
-  title, userName, userRole, lang, onLangChange, onHome, onProfile, onLogout, onCotizaciones, onSolicitudes, onPolizas, labels, children,
+  title, userName, userRole, lang, onLangChange, onHome, onProfile, onLogout, onCotizaciones, onSolicitudes, onPolizas, onComisiones, onPersonal, onAgentes, onRecursos, labels, children,
 }: ResolvedShellProps) {
   const activeLang = useSettingsStore((s) => s.lang);
+  const { canSee } = usePermisos();
   const { colors } = useTheme();
   return (
     <View style={[styles.row, { backgroundColor: colors.background }]}>
@@ -181,61 +204,87 @@ function DesktopShell({
               </Text>
             </View>
           </TouchableRipple>
-          <TouchableRipple onPress={onCotizaciones} style={styles.navItem} borderless>
-            <View style={styles.navInner}>
-              <Icon source="file-document-edit-outline" size={20} color={palette.indigo[200]} />
-              <Text variant="labelLarge" style={{ color: palette.indigo[200] }}>
-                {labels.quotes}
-              </Text>
-            </View>
-          </TouchableRipple>
-          <TouchableRipple onPress={onSolicitudes} style={styles.navItem} borderless>
-            <View style={styles.navInner}>
-              <Icon source="clipboard-list-outline" size={20} color={palette.indigo[200]} />
-              <Text variant="labelLarge" style={{ color: palette.indigo[200] }}>
-                {labels.requests}
-              </Text>
-            </View>
-          </TouchableRipple>
-          <TouchableRipple onPress={onPolizas} style={styles.navItem} borderless>
-            <View style={styles.navInner}>
-              <Icon source="shield-check-outline" size={20} color={palette.indigo[200]} />
-              <Text variant="labelLarge" style={{ color: palette.indigo[200] }}>
-                {labels.policies}
-              </Text>
-            </View>
-          </TouchableRipple>
+          {canSee(OPCION.cotizaciones) && (
+            <TouchableRipple onPress={onCotizaciones} style={styles.navItem} borderless>
+              <View style={styles.navInner}>
+                <Icon source="file-document-edit-outline" size={20} color={palette.indigo[200]} />
+                <Text variant="labelLarge" style={{ color: palette.indigo[200] }}>
+                  {labels.quotes}
+                </Text>
+              </View>
+            </TouchableRipple>
+          )}
+          {canSee(OPCION.solicitudes) && (
+            <TouchableRipple onPress={onSolicitudes} style={styles.navItem} borderless>
+              <View style={styles.navInner}>
+                <Icon source="clipboard-list-outline" size={20} color={palette.indigo[200]} />
+                <Text variant="labelLarge" style={{ color: palette.indigo[200] }}>
+                  {labels.requests}
+                </Text>
+              </View>
+            </TouchableRipple>
+          )}
+          {canSee(OPCION.cartera) && (
+            <TouchableRipple onPress={onPolizas} style={styles.navItem} borderless>
+              <View style={styles.navInner}>
+                <Icon source="shield-check-outline" size={20} color={palette.indigo[200]} />
+                <Text variant="labelLarge" style={{ color: palette.indigo[200] }}>
+                  {labels.policies}
+                </Text>
+              </View>
+            </TouchableRipple>
+          )}
+          {canSee(OPCION.comisiones) && (
+            <TouchableRipple onPress={onComisiones} style={styles.navItem} borderless>
+              <View style={styles.navInner}>
+                <Icon source="hand-coin-outline" size={20} color={palette.indigo[200]} />
+                <Text variant="labelLarge" style={{ color: palette.indigo[200] }}>
+                  {labels.commissions}
+                </Text>
+              </View>
+            </TouchableRipple>
+          )}
+          {canSee(OPCION.agentes) && (
+            <TouchableRipple onPress={onAgentes} style={styles.navItem} borderless>
+              <View style={styles.navInner}>
+                <Icon source="account-network-outline" size={20} color={palette.indigo[200]} />
+                <Text variant="labelLarge" style={{ color: palette.indigo[200] }}>
+                  {labels.agents}
+                </Text>
+              </View>
+            </TouchableRipple>
+          )}
+          {canSee(OPCION.personal) && (
+            <TouchableRipple onPress={onPersonal} style={styles.navItem} borderless>
+              <View style={styles.navInner}>
+                <Icon source="account-group-outline" size={20} color={palette.indigo[200]} />
+                <Text variant="labelLarge" style={{ color: palette.indigo[200] }}>
+                  {labels.staff}
+                </Text>
+              </View>
+            </TouchableRipple>
+          )}
+          {canSee(OPCION.recursosAgente) && (
+            <TouchableRipple onPress={onRecursos} style={styles.navItem} borderless>
+              <View style={styles.navInner}>
+                <Icon source="folder-open-outline" size={20} color={palette.indigo[200]} />
+                <Text variant="labelLarge" style={{ color: palette.indigo[200] }}>
+                  {labels.resources}
+                </Text>
+              </View>
+            </TouchableRipple>
+          )}
         </View>
         <View style={styles.sidebarFooter}>
           <Divider style={{ backgroundColor: 'rgba(255,255,255,0.12)' }} />
-          <TouchableRipple onPress={onProfile} borderless style={styles.userBlock}>
-            <View style={styles.userRow}>
-              <Avatar.Text
-                size={36}
-                label={getInitials(userName)}
-                style={{ backgroundColor: palette.gold[500] }}
-                labelStyle={{ color: palette.indigo[900], fontFamily: 'Inter_600SemiBold' }}
-              />
-              <View style={{ flex: 1 }}>
-                <Text variant="labelLarge" style={{ color: '#FFFFFF' }} numberOfLines={1}>
-                  {userName.trim()}
-                </Text>
-                {!!userRole && (
-                  <Text variant="labelSmall" style={{ color: palette.indigo[300] }} numberOfLines={1}>
-                    {translateRole(userRole, activeLang)}
-                  </Text>
-                )}
-              </View>
-            </View>
-          </TouchableRipple>
-          <TouchableRipple onPress={onLogout} style={styles.navItem} borderless>
-            <View style={styles.navInner}>
-              <Icon source="logout" size={20} color={palette.indigo[200]} />
-              <Text variant="labelLarge" style={{ color: palette.indigo[200] }}>
-                {labels.logout}
-              </Text>
-            </View>
-          </TouchableRipple>
+          <UserMenu
+            userName={userName}
+            userRole={userRole}
+            lang={lang}
+            labels={labels}
+            onProfile={onProfile}
+            onLogout={onLogout}
+          />
         </View>
       </LinearGradient>
 
@@ -252,11 +301,117 @@ function DesktopShell({
   );
 }
 
+/**
+ * Menú del usuario (desktop): replica el dropdown del portal —
+ * "Mi perfil" y "Cartera" (perfil del MGA propio) + salir.
+ * Cartera requiere permiso de ejecución de Perfil, igual que el portal.
+ */
+function UserMenu({
+  userName,
+  userRole,
+  lang,
+  labels,
+  onProfile,
+  onLogout,
+}: {
+  userName: string;
+  userRole?: string;
+  lang: Lang;
+  labels: MenuLabels;
+  onProfile: () => void;
+  onLogout: () => void;
+}) {
+  const [open, setOpen] = useState(false);
+  const router = useRouter();
+  const pathname = usePathname();
+  const user = useAuthStore((s) => s.user);
+  const { canSee, canExecute } = usePermisos();
+  const codigoAgente = user?.CodigoAgente || user?.CodigoPersonalInterno || 0;
+  // Como el portal: en Mi perfil solo se ofrece Cartera y viceversa
+  const onPerfil = pathname === '/perfil';
+  const onCartera = codigoAgente > 0 && pathname === `/agentes/${codigoAgente}`;
+  const showProfile = canSee(OPCION.perfil) && !onPerfil;
+  const showCartera = codigoAgente > 0 && canExecute(OPCION.perfil) && !onCartera;
+  const pick = (fn: () => void) => () => { setOpen(false); fn(); };
+
+  const userBlock = (
+    <View style={styles.userRow}>
+      <Avatar.Text
+        size={36}
+        label={getInitials(userName)}
+        style={{ backgroundColor: palette.gold[500] }}
+        labelStyle={{ color: palette.indigo[900], fontFamily: 'Inter_600SemiBold' }}
+      />
+      <View style={{ flex: 1 }}>
+        <Text variant="labelLarge" style={{ color: '#FFFFFF' }} numberOfLines={1}>
+          {userName.trim()}
+        </Text>
+        {!!userRole && (
+          <Text variant="labelSmall" style={{ color: palette.indigo[300] }} numberOfLines={1}>
+            {translateRole(userRole, lang)}
+          </Text>
+        )}
+      </View>
+      {(showProfile || showCartera || pathname !== '/campanas') && <Icon source="chevron-up" size={18} color={palette.indigo[300]} />}
+    </View>
+  );
+
+  return (
+    <View style={{ gap: 8 }}>
+      {showProfile || showCartera || pathname !== '/campanas' ? (
+        <Menu
+          visible={open}
+          onDismiss={() => setOpen(false)}
+          anchorPosition="top"
+          contentStyle={{ minWidth: 220 }}
+          anchor={
+            <TouchableRipple onPress={() => setOpen(true)} borderless style={styles.userBlock}>
+              {userBlock}
+            </TouchableRipple>
+          }
+        >
+          {pathname !== '/campanas' && (
+            <Menu.Item
+              leadingIcon="image-multiple-outline"
+              title={labels.cancun}
+              onPress={pick(() => router.push('/campanas' as any))}
+            />
+          )}
+          {showProfile && (
+            <Menu.Item leadingIcon="account-outline" title={labels.profile} onPress={pick(onProfile)} />
+          )}
+          {showCartera && (
+            <Menu.Item
+              leadingIcon="briefcase-outline"
+              title={labels.cartera}
+              onPress={pick(() => router.push(`/agentes/${codigoAgente}` as any))}
+            />
+          )}
+        </Menu>
+      ) : (
+        <View style={styles.userBlock}>{userBlock}</View>
+      )}
+      <TouchableRipple onPress={onLogout} style={styles.navItem} borderless>
+        <View style={styles.navInner}>
+          <Icon source="logout" size={20} color={palette.indigo[200]} />
+          <Text variant="labelLarge" style={{ color: palette.indigo[200] }}>
+            {labels.logout}
+          </Text>
+        </View>
+      </TouchableRipple>
+    </View>
+  );
+}
+
 function MobileNavMenu({
   onHome,
   onCotizaciones,
   onSolicitudes,
   onPolizas,
+  onComisiones,
+  onPersonal,
+  onAgentes,
+  onRecursos,
   onProfile,
   onLogout,
   labels,
@@ -266,12 +421,22 @@ function MobileNavMenu({
   onCotizaciones: () => void;
   onSolicitudes: () => void;
   onPolizas: () => void;
+  onComisiones: () => void;
+  onPersonal: () => void;
+  onAgentes: () => void;
+  onRecursos: () => void;
   onProfile: () => void;
   onLogout: () => void;
   labels: MenuLabels;
   lang: Lang;
 }) {
   const [open, setOpen] = useState(false);
+  const user = useAuthStore((s) => s.user);
+  const router = useRouter();
+  const pathname = usePathname();
+  const { canSee, canExecute } = usePermisos();
+  const codigoAgente = user?.CodigoAgente || user?.CodigoPersonalInterno || 0;
+  const showCartera = codigoAgente > 0 && canExecute(OPCION.perfil) && pathname !== `/agentes/${codigoAgente}`;
   return (
     <Menu
       visible={open}
@@ -288,20 +453,62 @@ function MobileNavMenu({
       anchorPosition="bottom"
     >
       <Menu.Item leadingIcon="view-dashboard-outline" onPress={() => { onHome(); setOpen(false); }} title={labels.home} />
-      <Menu.Item leadingIcon="file-document-edit-outline" onPress={() => { onCotizaciones(); setOpen(false); }} title={labels.quotes} />
-      <Menu.Item leadingIcon="clipboard-list-outline" onPress={() => { onSolicitudes(); setOpen(false); }} title={labels.requests} />
-      <Menu.Item leadingIcon="shield-check-outline" onPress={() => { onPolizas(); setOpen(false); }} title={labels.policies} />
+      {canSee(OPCION.cotizaciones) && (
+        <Menu.Item leadingIcon="file-document-edit-outline" onPress={() => { onCotizaciones(); setOpen(false); }} title={labels.quotes} />
+      )}
+      {canSee(OPCION.solicitudes) && (
+        <Menu.Item leadingIcon="clipboard-list-outline" onPress={() => { onSolicitudes(); setOpen(false); }} title={labels.requests} />
+      )}
+      {canSee(OPCION.cartera) && (
+        <Menu.Item leadingIcon="shield-check-outline" onPress={() => { onPolizas(); setOpen(false); }} title={labels.policies} />
+      )}
+      {canSee(OPCION.comisiones) && (
+        <Menu.Item leadingIcon="hand-coin-outline" onPress={() => { onComisiones(); setOpen(false); }} title={labels.commissions} />
+      )}
+      {canSee(OPCION.agentes) && (
+        <Menu.Item leadingIcon="account-network-outline" onPress={() => { onAgentes(); setOpen(false); }} title={labels.agents} />
+      )}
+      {canSee(OPCION.personal) && (
+        <Menu.Item leadingIcon="account-group-outline" onPress={() => { onPersonal(); setOpen(false); }} title={labels.staff} />
+      )}
+      {canSee(OPCION.recursosAgente) && (
+        <Menu.Item leadingIcon="folder-open-outline" onPress={() => { onRecursos(); setOpen(false); }} title={labels.resources} />
+      )}
+      {showCartera && (
+        <Menu.Item
+          leadingIcon="briefcase-outline"
+          onPress={() => { setOpen(false); router.push(`/agentes/${codigoAgente}` as any); }}
+          title={labels.cartera}
+        />
+      )}
+      {pathname !== '/campanas' && (
+        <Menu.Item
+          leadingIcon="image-multiple-outline"
+          onPress={() => { setOpen(false); router.push('/campanas' as any); }}
+          title={labels.cancun}
+        />
+      )}
       <Menu.Item leadingIcon="logout" onPress={() => { onLogout(); setOpen(false); }} title={labels.logout} />
     </Menu>
   );
 }
 
 function MobileShell({
-  title, userName, lang, onLangChange, onHome, onProfile, onLogout, onCotizaciones, onSolicitudes, onPolizas, labels, children,
+  title, userName, lang, onLangChange, onHome, onProfile, onLogout, onCotizaciones, onSolicitudes, onPolizas, onComisiones, onPersonal, onAgentes, onRecursos, labels, children,
 }: ResolvedShellProps) {
   const activeLang = useSettingsStore((s) => s.lang);
   const { colors } = useTheme();
   const insets = useSafeAreaInsets();
+  const router = useRouter();
+  const pathname = usePathname();
+  const user = useAuthStore((s) => s.user);
+  const { canSee, canExecute } = usePermisos();
+  const codigoAgente = user?.CodigoAgente || user?.CodigoPersonalInterno || 0;
+  // En perfil → ícono de Cartera; en Cartera (o en general) → ícono de perfil
+  const onPerfil = pathname === '/perfil';
+  const onCartera = codigoAgente > 0 && pathname === `/agentes/${codigoAgente}`;
+  const showCarteraIcon = onPerfil && codigoAgente > 0 && canExecute(OPCION.perfil);
+  const showProfileIcon = !onPerfil && (onCartera || canSee(OPCION.perfil));
   return (
     <View style={[styles.flex, { backgroundColor: colors.background }]}>
       <LinearGradient
@@ -313,9 +520,13 @@ function MobileShell({
         <View style={styles.mobileTopRow}>
           <Brand compact lang={activeLang} />
           <View style={styles.mobileActions}>
-            <MobileNavMenu onHome={onHome} onCotizaciones={onCotizaciones} onSolicitudes={onSolicitudes} onPolizas={onPolizas} onProfile={onProfile} onLogout={onLogout} labels={labels} lang={lang} />
+            <MobileNavMenu onHome={onHome} onCotizaciones={onCotizaciones} onSolicitudes={onSolicitudes} onPolizas={onPolizas} onComisiones={onComisiones} onPersonal={onPersonal} onAgentes={onAgentes} onRecursos={onRecursos} onProfile={onProfile} onLogout={onLogout} labels={labels} lang={lang} />
             <LangMenu lang={lang} onChange={onLangChange} color="#FFFFFF" label={labels.language} />
-            <IconButton icon="account-circle-outline" iconColor="#FFFFFF" onPress={onProfile} accessibilityLabel={labels.profile} />
+            {showCarteraIcon ? (
+              <IconButton icon="briefcase-outline" iconColor="#FFFFFF" onPress={() => router.push(`/agentes/${codigoAgente}` as any)} accessibilityLabel={labels.cartera} />
+            ) : showProfileIcon ? (
+              <IconButton icon="account-circle-outline" iconColor="#FFFFFF" onPress={onProfile} accessibilityLabel={labels.profile} />
+            ) : null}
           </View>
         </View>
         <Text variant="labelMedium" style={{ color: palette.indigo[200], marginTop: 8 }}>

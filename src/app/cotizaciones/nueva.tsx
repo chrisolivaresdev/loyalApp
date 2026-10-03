@@ -1,8 +1,10 @@
+import { OPCION } from '@/api/agent';
 import { AppShell, Lang } from '@/components/AppShell';
 import { DateField } from '@/components/DateField';
 import { SelectField, SelectOption } from '@/components/SelectField';
 import { useLogout } from '@/hooks/useAuth';
 import { usePaises, useSolicitarCotizacion } from '@/hooks/useCotizaciones';
+import { useRequirePermiso } from '@/hooks/usePermisos';
 import { useResponsive } from '@/hooks/useResponsive';
 import { useAuthStore } from '@/stores/auth';
 import { useSettingsStore } from '@/stores/settings';
@@ -208,6 +210,7 @@ function CheckField({ label, checked, onToggle }: { label: string; checked: bool
 
 export default function NuevaCotizacionScreen() {
   const user = useAuthStore((s) => s.user);
+  const allowed = useRequirePermiso(OPCION.cotizaciones, 'ejec', '/cotizaciones');
   const logout = useLogout();
   const router = useRouter();
   const { colors, roundness } = useTheme();
@@ -318,6 +321,8 @@ export default function NuevaCotizacionScreen() {
   };
 
   const goBack = () => (router.canGoBack() ? router.back() : router.replace('/cotizaciones' as any));
+
+  if (!allowed) return null;
 
   return (
     <>

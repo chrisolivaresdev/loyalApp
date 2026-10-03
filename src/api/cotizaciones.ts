@@ -126,6 +126,20 @@ export const getCotizaciones = (codigoEstadoCotizacion?: string, page = 1, limit
       return { data, meta };
     });
 
+export interface CotizacionEstadoResumen {
+  codigoEstadoCotizacion: string;
+  descripcionEstadoCotizacion: string;
+  cantidad: number;
+}
+
+export interface ResumenCotizaciones {
+  total: number;
+  estados: CotizacionEstadoResumen[];
+}
+
+export const getResumenCotizaciones = () =>
+  api.get<ResumenCotizaciones>('/cotizaciones/resumen').then((r) => r.data);
+
 export const getAseguradasPlan = (page = 1, limit = 25) =>
   api
     .get<PaginatedResponse<AseguradaPlan>>('/cotizaciones/consulta-asegurada-plan', { params: { page, limit } })

@@ -1,6 +1,8 @@
+import { OPCION } from '@/api/agent';
 import { AppShell, Lang } from '@/components/AppShell';
 import { SelectField } from '@/components/SelectField';
 import { useLogout } from '@/hooks/useAuth';
+import { useRequirePermiso } from '@/hooks/usePermisos';
 import { useResponsive } from '@/hooks/useResponsive';
 import { useAuthStore } from '@/stores/auth';
 import { useSettingsStore } from '@/stores/settings';
@@ -127,6 +129,7 @@ const COUNTRIES: Record<Lang, { value: string; label: string }[]> = {
 
 export default function PerfilScreen() {
   const router = useRouter();
+  const allowed = useRequirePermiso(OPCION.perfil);
   const user = useAuthStore((s) => s.user);
   const setUser = useAuthStore((s) => s.setUser);
   const logout = useLogout();
@@ -175,6 +178,8 @@ export default function PerfilScreen() {
       />
     );
   }, [imageUrl, user, roundness]);
+
+  if (!allowed) return null;
 
   return (
     <AppShell

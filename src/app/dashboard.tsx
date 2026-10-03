@@ -1,13 +1,20 @@
+import { OPCION } from '@/api/agent';
 import { AgentCard } from '@/components/AgentCard';
 import { AppShell, Lang } from '@/components/AppShell';
 import { BreakdownCard } from '@/components/BreakdownCard';
 import { ChartsSection } from '@/components/ChartsSection';
+import { CotizacionesResumenCard } from '@/components/CotizacionesResumenCard';
 import { GoalCard } from '@/components/GoalCard';
+import { SolicitudesResumenCard } from '@/components/SolicitudesResumenCard';
 import { StatCard } from '@/components/StatCard';
+import { usePerfilAgente } from '@/hooks/useAgentes';
 import { useLogout } from '@/hooks/useAuth';
 import { useCharts } from '@/hooks/useCharts';
+import { useResumenCotizaciones } from '@/hooks/useCotizaciones';
 import { useDashboard } from '@/hooks/useDashboard';
+import { usePermisos } from '@/hooks/usePermisos';
 import { useResponsive } from '@/hooks/useResponsive';
+import { useSolicitudes } from '@/hooks/useSolicitudes';
 import { useAuthStore } from '@/stores/auth';
 import { useSettingsStore } from '@/stores/settings';
 import { palette } from '@/theme';
@@ -42,7 +49,15 @@ const labels: Record<Lang, { [key: string]: string }> = {
     charts: 'Gráficos',
     quotes: 'Cotizaciones',
     requests: 'Solicitudes',
+    requestsEntered: 'Solicitudes Ingresadas',
     lastRequest: 'Última solicitud',
+    stGenerated: 'Generada',
+    stInProgress: 'En Proceso Registro',
+    stPendingUw: 'Pendiente UW',
+    stApproved: 'Aprobada',
+    stDenied: 'Denegada',
+    stVoided: 'Anulada',
+    stPostponed: 'Evaluación Pospuesta',
     lastPayment: 'Último pago de comisiones',
     breakdownPolicies: 'Cartera - Pólizas',
     breakdownPremiums: 'Cartera - Primas',
@@ -87,7 +102,15 @@ const labels: Record<Lang, { [key: string]: string }> = {
     charts: 'Charts',
     quotes: 'Quotes',
     requests: 'Applications',
+    requestsEntered: 'Applications submitted',
     lastRequest: 'Last application',
+    stGenerated: 'Generated',
+    stInProgress: 'Registration in progress',
+    stPendingUw: 'Pending UW',
+    stApproved: 'Approved',
+    stDenied: 'Denied',
+    stVoided: 'Voided',
+    stPostponed: 'Postponed evaluation',
     lastPayment: 'Last commission payment',
     breakdownPolicies: 'Portfolio - Policies',
     breakdownPremiums: 'Portfolio - Premiums',
@@ -132,7 +155,15 @@ const labels: Record<Lang, { [key: string]: string }> = {
     charts: 'Gráficos',
     quotes: 'Cotações',
     requests: 'Solicitações',
+    requestsEntered: 'Solicitações registradas',
     lastRequest: 'Última solicitação',
+    stGenerated: 'Gerada',
+    stInProgress: 'Registro em andamento',
+    stPendingUw: 'Pendente UW',
+    stApproved: 'Aprovada',
+    stDenied: 'Negada',
+    stVoided: 'Anulada',
+    stPostponed: 'Avaliação postergada',
     lastPayment: 'Último pagamento de comissões',
     breakdownPolicies: 'Carteira - Apólices',
     breakdownPremiums: 'Carteira - Prêmios',
@@ -232,6 +263,11 @@ export default function DashboardScreen() {
   const user = useAuthStore((s) => s.user);
   const { data, isLoading, isError, refetch, isRefetching } = useDashboard();
   const { productos, ventas, paises } = useCharts();
+  const { canSee, canExecute } = usePermisos();
+  const { data: solicitudesResumen } = useSolicitudes('99', 1, 1, canSee(OPCION.solicitudes));
+  const { data: cotizacionesResumen } = useResumenCotizaciones(canSee(OPCION.cotizaciones));
+  const codigoAgente = user?.CodigoAgente || user?.CodigoPersonalInterno || 0;
+  const { data: perfil } = usePerfilAgente(codigoAgente || null, false, canSee(OPCION.agentes));
   const logout = useLogout();
   const router = useRouter();
   const { isMobile } = useResponsive();
@@ -320,47 +356,86 @@ export default function DashboardScreen() {
             <View>
               <SectionTitle title={t.summary} />
               <View style={styles.grid}>
-                <StatCard icon="calculator-variant-outline" label={t.quotes} value={formatNumber(data.TotalCotizaciones)} accent={palette.info} />
-                <StatCard
-                  icon="file-document-outline"
-                  label={t.requests}
-                  value={formatNumber(data.TotalSolicitudesIngresadas)}
-                  hint={formatDate(data.FechaUltimaSolicitud, lang) ? `${t.lastRequest}: ${formatDate(data.FechaUltimaSolicitud, lang)}` : undefined}
-                  accent="#DB2777"
-                />
-                <StatCard
-                  icon="bank-transfer"
-                  label={t.lastPayment}
-                  value={formatCurrency(data.MontoPagadoComisiones)}
-                  hint={data.DescripcionCicloComisiones || undefined}
-                  accent={palette.warning}
-                />
+                {canSee(OPCION.cotizaciones) && (
+                  <StatCard icon="calculator-variant-outline" label={t.quotes} value={formatNumber(data.TotalCotizaciones)} accent={palette.info} />
+                )}
+                {canSee(OPCION.solicitudes) && (
+                  <StatCard
+                    icon="file-document-outline"
+                    label={t.requests}
+                    value={formatNumber(data.TotalSolicitudesIngresadas)}
+                    hint={formatDate(data.FechaUltimaSolicitud, lang) ? `${t.lastRequest}: ${formatDate(data.FechaUltimaSolicitud, lang)}` : undefined}
+                    accent="#DB2777"
+                  />
+                )}
+                {canSee(OPCION.comisiones) && (
+                  <StatCard
+                    icon="bank-transfer"
+                    label={t.lastPayment}
+                    value={formatCurrency(data.MontoPagadoComisiones)}
+                    hint={data.DescripcionCicloComisiones || undefined}
+                    accent={palette.warning}
+                    action={{ label: t.commissions, onPress: () => router.push('/comisiones' as any) }}
+                  />
+                )}
               </View>
             </View>
 
             <View style={styles.grid}>
-              <BreakdownCard
-                title={t.breakdownPolicies}
-                subtitle={`${formatNumber(data.TotalPolizasActivas)} ${t.active.toLowerCase()}`}
+              {canSee(OPCION.cotizaciones) && (
+                <CotizacionesResumenCard
+                  resumen={cotizacionesResumen}
+                  lang={lang}
+                  onPress={() => router.push('/cotizaciones' as any)}
+                  onGenerate={canExecute(OPCION.cotizaciones) ? () => router.push('/cotizaciones/nueva' as any) : undefined}
+                />
+              )}
+              {canSee(OPCION.solicitudes) && <SolicitudesResumenCard
+                title={t.requestsEntered}
+                lastRequestLabel={t.lastRequest}
+                lastRequestDate={formatDate(data.FechaUltimaSolicitud, lang)}
+                total={data.TotalSolicitudesIngresadas ?? 0}
+                lang={lang}
+                onPress={() => router.push('/solicitudes' as any)}
                 items={[
-                  { label: t.active, value: formatNumber(data.TotalPolizasActivas), color: palette.navy[600] },
-                  { label: t.gracePeriod, value: formatNumber(0), color: palette.success },
-                  { label: t.pendingPayment, value: formatNumber(0), color: palette.warning },
-                  { label: t.total, value: formatNumber(data.TotalPolizasActivas), color: palette.navy[900] },
-                  { label: t.cancelled, value: formatNumber(data.PolizasCanceladas), color: palette.danger },
+                  { label: t.stGenerated, count: solicitudesResumen?.Generada ?? 0 },
+                  { label: t.stInProgress, count: solicitudesResumen?.Registro ?? 0 },
+                  { label: t.stPendingUw, count: solicitudesResumen?.Evaluacion ?? 0 },
+                  { label: t.stApproved, count: solicitudesResumen?.Aprobada ?? 0 },
+                  { label: t.stDenied, count: solicitudesResumen?.Denegada ?? 0 },
+                  { label: t.stVoided, count: solicitudesResumen?.Anulada ?? 0 },
+                  { label: t.stPostponed, count: solicitudesResumen?.Pospuesta ?? 0 },
                 ]}
-              />
-              <BreakdownCard
-                title={t.breakdownPremiums}
-                subtitle={formatCurrency(data.TotalPrimasPagadas)}
-                items={[
-                  { label: t.active, value: formatCurrency(data.TotalPrimasPagadas), color: palette.navy[600] },
-                  { label: t.gracePeriod, value: formatCurrency(data.PrimasComisionablesPeriodoGracias), color: palette.success },
-                  { label: t.pendingPayment, value: formatCurrency(data.PrimasPendientesPago), color: palette.warning },
-                  { label: t.total, value: formatCurrency((data.TotalPrimasPagadas || 0) + (data.PrimasComisionablesPeriodoGracias || 0) + (data.PrimasPendientesPago || 0)), color: palette.navy[900] },
-                  { label: t.cancelled, value: formatCurrency(data.PrimasCanceladas), color: palette.danger },
-                ]}
-              />
+              />}
+              {canSee(OPCION.cartera) && (
+                <BreakdownCard
+                  title={t.breakdownPolicies}
+                  subtitle={`${formatNumber(data.TotalPolizasActivas)} ${t.active.toLowerCase()}`}
+                  onPress={() => router.push('/polizas' as any)}
+                  icon="shield-check-outline"
+                  iconColor={palette.navy[600]}
+                  items={[
+                    { label: t.active, value: formatNumber(data.TotalPolizasActivas), color: palette.navy[600] },
+                    { label: t.gracePeriod, value: formatNumber(0), color: palette.success },
+                    { label: t.pendingPayment, value: formatNumber(0), color: palette.warning },
+                    { label: t.total, value: formatNumber(data.TotalPolizasActivas), color: palette.navy[900] },
+                    { label: t.cancelled, value: formatNumber(data.PolizasCanceladas), color: palette.danger },
+                  ]}
+                />
+              )}
+              {canSee(OPCION.primas) && (
+                <BreakdownCard
+                  title={t.breakdownPremiums}
+                  subtitle={formatCurrency(data.TotalPrimasPagadas)}
+                  items={[
+                    { label: t.active, value: formatCurrency(data.TotalPrimasPagadas), color: palette.navy[600] },
+                    { label: t.gracePeriod, value: formatCurrency(data.PrimasComisionablesPeriodoGracias), color: palette.success },
+                    { label: t.pendingPayment, value: formatCurrency(data.PrimasPendientesPago), color: palette.warning },
+                    { label: t.total, value: formatCurrency((data.TotalPrimasPagadas || 0) + (data.PrimasComisionablesPeriodoGracias || 0) + (data.PrimasPendientesPago || 0)), color: palette.navy[900] },
+                    { label: t.cancelled, value: formatCurrency(data.PrimasCanceladas), color: palette.danger },
+                  ]}
+                />
+              )}
             </View>
 
             <View>
@@ -369,6 +444,15 @@ export default function DashboardScreen() {
                 productos={productos.data}
                 ventas={ventas.data}
                 paises={paises.data}
+                kpi={{
+                  porcentajeObjetivo: data.PorcentajeObjetivo ?? 0,
+                  polizas: data.TotalPolizasActivas ?? 0,
+                  nuevoNegocio: data.PrimasNuevoNegocio ?? 0,
+                  renovaciones: data.PrimasRenovaciones ?? 0,
+                  pagosRecibidos: data.TotalPrimasPagadas ?? 0,
+                  objetivo: data.Objetivo ?? 0,
+                }}
+                cartera={perfil ? { primasPropias: perfil.primasPropias, primasAgentes: perfil.primasAgentes } : undefined}
                 lang={lang}
               />
             </View>
