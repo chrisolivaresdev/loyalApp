@@ -14,18 +14,18 @@ import { palette } from '@/theme';
 import { descargarArchivoAutenticado } from '@/utils/downloadFile';
 import { useRouter } from 'expo-router';
 import { useEffect, useMemo, useState } from 'react';
-import { Platform, StyleSheet, View } from 'react-native';
+import { StyleSheet, View } from 'react-native';
 import {
-  ActivityIndicator,
-  Button,
-  Divider,
-  Icon,
-  IconButton,
-  Searchbar,
-  Text,
-  TextInput,
-  TouchableRipple,
-  useTheme
+    ActivityIndicator,
+    Button,
+    Divider,
+    Icon,
+    IconButton,
+    Searchbar,
+    Text,
+    TextInput,
+    TouchableRipple,
+    useTheme
 } from 'react-native-paper';
 
 const labels = {
@@ -319,11 +319,7 @@ export default function PolizasScreen() {
     const nombre = `polizas.${formato === 'excel' ? 'xlsx' : 'pdf'}`;
     try {
       setExporting(formato);
-      if (Platform.OS === 'web') {
-        window.open(url, '_blank');
-      } else {
-        await descargarArchivoAutenticado(url, nombre, formato === 'excel' ? 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' : 'application/pdf');
-      }
+      await descargarArchivoAutenticado(url, nombre, formato === 'excel' ? 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' : 'application/pdf');
     } finally {
       setExporting('');
     }

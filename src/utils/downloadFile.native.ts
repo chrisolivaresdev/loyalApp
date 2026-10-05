@@ -1,6 +1,7 @@
 import { api } from '@/api/client';
 import { File, Paths } from 'expo-file-system';
 import * as Sharing from 'expo-sharing';
+import { Linking } from 'react-native';
 
 /**
  * Descarga un archivo protegido por sesión en nativo.
@@ -16,5 +17,17 @@ export async function descargarArchivoAutenticado(url: string, fileName: string,
   file.write(new Uint8Array(data));
   if (await Sharing.isAvailableAsync()) {
     await Sharing.shareAsync(file.uri, { mimeType, dialogTitle: fileName });
+  }
+}
+
+/**
+ * "Abre" un archivo protegido en nativo: descarga con sesión y lo comparte;
+ * si falla, intenta abrir la URL directa como último recurso.
+ */
+export async function abrirArchivoAutenticado(url: string, fileName = 'documento', mimeType?: string): Promise<void> {
+  try {
+    await descargarArchivoAutenticado(url, fileName, mimeType);
+  } catch {
+    await Linking.openURL(url);
   }
 }

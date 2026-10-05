@@ -8,18 +8,18 @@ import { useResponsive } from '@/hooks/useResponsive';
 import { useAuthStore } from '@/stores/auth';
 import { useSettingsStore } from '@/stores/settings';
 import { palette } from '@/theme';
-import { descargarArchivoAutenticado } from '@/utils/downloadFile';
+import { abrirArchivoAutenticado } from '@/utils/downloadFile';
 import { useRouter } from 'expo-router';
 import { useState } from 'react';
 import { Linking, Platform, StyleSheet, View } from 'react-native';
 import {
-    ActivityIndicator,
-    Button,
-    Icon,
-    Searchbar,
-    Text,
-    TouchableRipple,
-    useTheme,
+  ActivityIndicator,
+  Button,
+  Icon,
+  Searchbar,
+  Text,
+  TouchableRipple,
+  useTheme,
 } from 'react-native-paper';
 
 const labels = {
@@ -87,17 +87,14 @@ export default function RecursosScreen() {
     const key = doc.nombre;
     try {
       setOpening(key);
-      if (Platform.OS === 'web') {
-        window.open(url, '_blank');
-      } else if (doc.url) {
-        await Linking.openURL(url);
+      if (doc.url) {
+        // URL externa (no requiere sesión)
+        if (Platform.OS === 'web') window.open(doc.url, '_blank');
+        else await Linking.openURL(doc.url);
       } else {
+        // Archivo del backend: requiere la cookie de sesión (window.open da 401)
         const fileName = doc.archivo!.split('/').pop() ?? 'documento';
-        try {
-          await descargarArchivoAutenticado(url, fileName);
-        } catch {
-          await Linking.openURL(url);
-        }
+        await abrirArchivoAutenticado(url, fileName);
       }
     } catch {
       // silencioso: el usuario puede reintentar
@@ -112,11 +109,7 @@ export default function RecursosScreen() {
     setOpening(t.constancia);
     try {
       const url = constanciaUrl();
-      if (Platform.OS === 'web') {
-        window.open(url, '_blank');
-      } else {
-        await descargarArchivoAutenticado(url, 'constancia-agente.pdf', 'application/pdf');
-      }
+      await abrirArchivoAutenticado(url, 'constancia-agente.pdf', 'application/pdf');
     } catch { /* silencioso */ } finally {
       setOpening('');
     }

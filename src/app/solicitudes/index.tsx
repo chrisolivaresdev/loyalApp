@@ -11,7 +11,7 @@ import { palette } from '@/theme';
 import { descargarArchivoAutenticado } from '@/utils/downloadFile';
 import { useRouter } from 'expo-router';
 import { useMemo, useState } from 'react';
-import { Platform, ScrollView, StyleSheet, View } from 'react-native';
+import { ScrollView, StyleSheet, View } from 'react-native';
 import {
     ActivityIndicator,
     Button,
@@ -352,11 +352,7 @@ export default function SolicitudesScreen() {
     const nombre = `solicitudes.${formato === 'excel' ? 'xlsx' : 'pdf'}`;
     try {
       setExporting(formato);
-      if (Platform.OS === 'web') {
-        window.open(url, '_blank');
-      } else {
-        await descargarArchivoAutenticado(url, nombre, formato === 'excel' ? 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' : 'application/pdf');
-      }
+      await descargarArchivoAutenticado(url, nombre, formato === 'excel' ? 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' : 'application/pdf');
     } finally {
       setExporting('');
     }

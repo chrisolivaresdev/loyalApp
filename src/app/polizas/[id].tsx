@@ -23,7 +23,7 @@ import { useResponsive } from '@/hooks/useResponsive';
 import { useAuthStore } from '@/stores/auth';
 import { useSettingsStore } from '@/stores/settings';
 import { palette } from '@/theme';
-import { descargarArchivoAutenticado } from '@/utils/downloadFile';
+import { abrirArchivoAutenticado } from '@/utils/downloadFile';
 import { useMutation, useQuery } from '@tanstack/react-query';
 import * as DocumentPicker from 'expo-document-picker';
 import { useLocalSearchParams, useRouter } from 'expo-router';
@@ -153,16 +153,8 @@ const estadoColor = (desc?: string) => {
 };
 
 async function openProtectedUrl(url: string, nombre: string) {
-  if (Platform.OS === 'web') {
-    window.open(url, '_blank');
-    return;
-  }
   const safe = nombre.replace(/[^\w.\-]+/g, '_');
-  try {
-    await descargarArchivoAutenticado(url, safe);
-  } catch {
-    await Linking.openURL(url);
-  }
+  await abrirArchivoAutenticado(url, safe);
 }
 
 const initials = (nombre = '') =>

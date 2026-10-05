@@ -17,12 +17,12 @@ import { useSolicitudDetalle } from '@/hooks/useSolicitudes';
 import { useAuthStore } from '@/stores/auth';
 import { useSettingsStore } from '@/stores/settings';
 import { palette } from '@/theme';
-import { descargarArchivoAutenticado } from '@/utils/downloadFile';
+import { abrirArchivoAutenticado } from '@/utils/downloadFile';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import * as DocumentPicker from 'expo-document-picker';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useMemo, useState } from 'react';
-import { Platform, ScrollView, StyleSheet, View } from 'react-native';
+import { ScrollView, StyleSheet, View } from 'react-native';
 import {
     ActivityIndicator,
     Banner,
@@ -296,12 +296,8 @@ export default function SolicitudDetalleScreen() {
 
   const descargarDoc = async (codigoDocumento: number, nombre: string) => {
     const url = `${api.defaults.baseURL}/documentos/descargar/${codigoDocumento}`;
-    if (Platform.OS === 'web') {
-      window.open(url, '_blank');
-      return;
-    }
     const safe = nombre.replace(/[^\w.\-]+/g, '_') || `doc-${codigoDocumento}`;
-    await descargarArchivoAutenticado(url, safe);
+    await abrirArchivoAutenticado(url, safe);
   };
 
   if (!allowed) return null;

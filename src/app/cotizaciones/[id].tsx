@@ -649,7 +649,7 @@ export default function CotizacionDetalleScreen() {
         {!!data && (
           <Button
             mode="outlined"
-            icon="email-send-outline"
+            icon="email-outline"
             compact
             onPress={openEnviar}
             style={{ borderRadius: roundness - 4 }}
