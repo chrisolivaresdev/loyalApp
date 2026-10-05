@@ -12,14 +12,14 @@ import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useEffect } from 'react';
 import { ScrollView, StyleProp, StyleSheet, View, ViewStyle } from 'react-native';
 import {
-  ActivityIndicator,
-  Avatar,
-  Button,
-  Chip,
-  Icon,
-  Text,
-  TouchableRipple,
-  useTheme,
+    ActivityIndicator,
+    Avatar,
+    Button,
+    Chip,
+    Icon,
+    Text,
+    TouchableRipple,
+    useTheme,
 } from 'react-native-paper';
 
 const labels = {
@@ -304,9 +304,10 @@ export default function PerfilAgenteScreen() {
           </View>
         </View>
 
-        <View style={styles.profileRow}>
+        <View style={[styles.profileRow, !isDesktop && styles.profileCol]}>
           {/* Columna izquierda: datos del agente */}
-          <View style={[styles.leftCol, { flex: isDesktop ? 1 : 0, minWidth: isDesktop ? 300 : 0, flexBasis: isDesktop ? 300 : undefined, width: isDesktop ? undefined : '100%' }]}>
+          {/* flexBasis:'auto' en mobile: 'undefined' no anula el flexBasis del StyleSheet base */}
+          <View style={[styles.leftCol, { flex: isDesktop ? 1 : 0, minWidth: isDesktop ? 300 : 0, flexBasis: isDesktop ? 300 : 'auto', width: isDesktop ? undefined : '100%' }]}>
             <SectionCard title={t.contact} icon="account-outline">
               <View style={styles.agentHead}>
                 <Avatar.Text
@@ -349,7 +350,7 @@ export default function PerfilAgenteScreen() {
           </View>
 
           {/* Columna derecha: cartera y gráficos */}
-          <View style={[styles.rightCol, { flex: isDesktop ? 1.6 : 0, minWidth: isDesktop ? 340 : 0, flexBasis: isDesktop ? 420 : undefined, width: isDesktop ? undefined : '100%' }]}>
+          <View style={[styles.rightCol, { flex: isDesktop ? 1.6 : 0, minWidth: isDesktop ? 340 : 0, flexBasis: isDesktop ? 420 : 'auto', width: isDesktop ? undefined : '100%' }]}>
             <View style={[styles.carteraCard, { backgroundColor: palette.indigo[500], borderRadius: roundness + 2 }]}>
               <Text variant="labelLarge" style={{ color: 'rgba(255,255,255,0.85)' }}>
                 {t.portfolio} · {agente.descripcionTipoAgente}
@@ -527,6 +528,7 @@ const styles = StyleSheet.create({
   centered: { alignItems: 'center', justifyContent: 'center', paddingVertical: 48 },
   breadcrumb: { flexDirection: 'row', alignItems: 'center', gap: 14, flexWrap: 'wrap' },
   profileRow: { flexDirection: 'row', gap: 16, flexWrap: 'wrap', alignItems: 'flex-start' },
+  profileCol: { flexDirection: 'column', flexWrap: 'nowrap', alignItems: 'stretch' },
   leftCol: { gap: 16, minWidth: 300, flexBasis: 300 },
   rightCol: { gap: 16, minWidth: 340, flexBasis: 420 },
   card: { borderWidth: 1, padding: 16, gap: 10 },
