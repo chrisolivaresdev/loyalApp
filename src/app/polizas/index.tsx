@@ -65,6 +65,7 @@ const labels = {
     exportExcel: 'Excel',
     exportPdf: 'PDF',
     exporting: 'Exportando…',
+    allLevels: 'Todos los niveles',
   },
   en: {
     policies: 'Policies',
@@ -102,6 +103,7 @@ const labels = {
     exportExcel: 'Excel',
     exportPdf: 'PDF',
     exporting: 'Exporting…',
+    allLevels: 'All levels',
   },
   pt: {
     policies: 'Apólices',
@@ -139,6 +141,7 @@ const labels = {
     exportExcel: 'Excel',
     exportPdf: 'PDF',
     exporting: 'Exportando…',
+    allLevels: 'Todos os níveis',
   },
 };
 
@@ -267,6 +270,7 @@ export default function PolizasScreen() {
   const [estado, setEstado] = useState('');
   const [tipoVenta, setTipoVenta] = useState('');
   const [showFilters, setShowFilters] = useState(false);
+  const [todosNiveles, setTodosNiveles] = useState(false);
   const [page, setPage] = useState(1);
   const [limit, setLimit] = useState(10);
   const [debounced, setDebounced] = useState({ titular: '', poliza: '', producto: '' });
@@ -282,7 +286,8 @@ export default function PolizasScreen() {
     descripcionPoliza: debounced.producto || undefined,
     estado: estado || undefined,
     tipoVenta: tipoVenta || undefined,
-  }), [debounced, estado, tipoVenta]);
+    todosLosNiveles: todosNiveles ? 'true' : undefined,
+  }), [debounced, estado, tipoVenta, todosNiveles]);
 
   useEffect(() => { setPage(1); }, [filtros]);
 
@@ -315,6 +320,7 @@ export default function PolizasScreen() {
       descripcionPoliza: debounced.producto || undefined,
       estado: estado || undefined,
       tipoVenta: tipoVenta || undefined,
+      todosLosNiveles: todosNiveles ? 'true' : undefined,
     });
     const nombre = `polizas.${formato === 'excel' ? 'xlsx' : 'pdf'}`;
     try {
@@ -368,6 +374,15 @@ export default function PolizasScreen() {
             inputStyle={{ fontSize: 14, minHeight: 0 }}
             elevation={0}
           />
+          <Button
+            mode={todosNiveles ? 'contained-tonal' : 'outlined'}
+            icon="account-group-outline"
+            onPress={() => setTodosNiveles((v) => !v)}
+            compact
+            style={{ borderRadius: roundness - 4 }}
+          >
+            {t.allLevels}
+          </Button>
           <Button
             mode={showFilters || hasFilters ? 'contained-tonal' : 'outlined'}
             icon="tune-variant"
@@ -477,7 +492,7 @@ export default function PolizasScreen() {
 const styles = StyleSheet.create({
   header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 12 },
   toolbar: { borderWidth: 1, padding: 10, gap: 10 },
-  toolbarRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  toolbarRow: { flexDirection: 'row', alignItems: 'center', gap: 8, flexWrap: 'wrap' },
   search: { flex: 1, minWidth: 180 },
   filtersGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 10, alignItems: 'center' },
   filterField: { flexGrow: 1, flexBasis: 180, minWidth: 160 },

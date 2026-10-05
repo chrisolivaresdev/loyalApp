@@ -21,6 +21,8 @@ export interface PolizasFiltros {
   tipoVenta?: string;
   titular?: string;
   descripcionPoliza?: string;
+  /** 'true' para incluir pólizas de agentes asociados (todos los niveles) */
+  todosLosNiveles?: string;
 }
 
 export interface PolizasResponse {
