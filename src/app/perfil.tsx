@@ -187,11 +187,25 @@ export default function PerfilScreen() {
       });
       const asset = res.assets?.[0];
       if (res.canceled || !asset) return;
-      let b64 = asset.base64;
-      if (!b64) {
-        b64 = await FileSystem.readAsStringAsync(asset.uri, { encoding: 'base64' });
+      let dataUri: string;
+      if (asset.base64) {
+        dataUri = `data:${asset.mimeType || 'image/jpeg'};base64,${asset.base64}`;
+      } else if (Platform.OS === 'web') {
+        // En web FileSystem no existe: el asset trae un File/blob
+        const blob = (asset as any).file instanceof Blob
+          ? (asset as any).file as Blob
+          : await (await fetch(asset.uri)).blob();
+        dataUri = await new Promise<string>((resolve, reject) => {
+          const fr = new FileReader();
+          fr.onload = () => resolve(fr.result as string);
+          fr.onerror = () => reject(fr.error);
+          fr.readAsDataURL(blob);
+        });
+      } else {
+        const b64 = await FileSystem.readAsStringAsync(asset.uri, { encoding: 'base64' });
+        dataUri = `data:${asset.mimeType || 'image/jpeg'};base64,${b64}`;
       }
-      uploadImg.mutate(`data:${asset.mimeType || 'image/jpeg'};base64,${b64}`);
+      uploadImg.mutate(dataUri);
     } catch {
       setImgError('Error');
     }

@@ -1,4 +1,5 @@
 import { OPCION } from '@/api/agent';
+import { getCotizacionEdicion } from '@/api/cotizaciones';
 import { AppShell, Lang } from '@/components/AppShell';
 import { DateField } from '@/components/DateField';
 import { SelectField, SelectOption } from '@/components/SelectField';
@@ -9,14 +10,17 @@ import { useResponsive } from '@/hooks/useResponsive';
 import { useAuthStore } from '@/stores/auth';
 import { useSettingsStore } from '@/stores/settings';
 import { palette } from '@/theme';
-import { useRouter } from 'expo-router';
-import { useMemo, useState } from 'react';
+import { useQuery } from '@tanstack/react-query';
+import { useLocalSearchParams, useRouter } from 'expo-router';
+import { useEffect, useMemo, useState } from 'react';
 import { StyleSheet, View } from 'react-native';
 import { Button, Checkbox, Icon, IconButton, Portal, Snackbar, Text, TextInput, useTheme } from 'react-native-paper';
 
 const labels: Record<Lang, { [key: string]: string }> = {
   es: {
     title: 'Registro de cotización',
+    editTitle: 'Editar cotización',
+    requote: 'Recotizar',
     quotes: 'Cotizaciones',
     requests: 'Solicitudes',
     home: 'Inicio',
@@ -58,6 +62,8 @@ const labels: Record<Lang, { [key: string]: string }> = {
   },
   en: {
     title: 'Quote registration',
+    editTitle: 'Edit quote',
+    requote: 'Re-quote',
     quotes: 'Quotes',
     requests: 'Requests',
     home: 'Home',
@@ -99,6 +105,8 @@ const labels: Record<Lang, { [key: string]: string }> = {
   },
   pt: {
     title: 'Registro de cotação',
+    editTitle: 'Editar cotação',
+    requote: 'Recotizar',
     quotes: 'Cotações',
     requests: 'Solicitações',
     home: 'Início',
@@ -223,8 +231,39 @@ export default function NuevaCotizacionScreen() {
   const [errors, setErrors] = useState<Errors>({});
   const [snack, setSnack] = useState<string | null>(null);
 
+  const { id } = useLocalSearchParams<{ id?: string }>();
+  const editId = Number(id) || 0;
+  const editing = editId > 0;
+
   const solicitar = useSolicitarCotizacion();
   const { data: paises } = usePaises();
+
+  // Edición/recotización: precarga la cabecera (portal: SolicitarCotizacion?nCodigoCotizacion=)
+  const { data: edicion } = useQuery({
+    queryKey: ['cotizacion-edicion', editId],
+    queryFn: () => getCotizacionEdicion(editId),
+    enabled: editing && allowed,
+  });
+
+  useEffect(() => {
+    if (!edicion) return;
+    setForm({
+      fechaInicio: edicion.fechaInicioValidez || today(),
+      pais: String(edicion.codigoPais || ''),
+      nombre: edicion.nombreSolicitante ?? '',
+      tipoId: edicion.codigoTipoDocumentoIdentidad ?? '',
+      documento: edicion.tipoDocumentoIdentidad ?? '',
+      nacimiento: edicion.fechaNacimientoSolicitante ?? '',
+      genero: edicion.sexoSolicitante ?? '',
+      correo: edicion.correo ?? '',
+      conyuge: edicion.indicadorConyuge,
+      nacimientoConyuge: edicion.fechaNacimientoConyuge ?? '',
+      generoConyuge: edicion.sexoConyuge ?? '',
+      dependientes: String(edicion.numeroDependientes ?? 0),
+      trasplante: edicion.trasplanteOrganos,
+      maternidad: edicion.complicacionesMaternidad,
+    });
+  }, [edicion]);
 
   const agente = user?.NombreCompletoUsuario?.trim() ?? '';
 
@@ -276,6 +315,7 @@ export default function NuevaCotizacionScreen() {
     if (!validate() || solicitar.isPending) return;
     solicitar.mutate(
       {
+        codigoCotizacion: editId,
         fechaInicioValidez: form.fechaInicio,
         nombreSolicitante: form.nombre.trim(),
         fechaNacimientoSolicitante: form.nacimiento,
@@ -296,11 +336,13 @@ export default function NuevaCotizacionScreen() {
         onSuccess: (res) => {
           setSnack(res.message);
           if (res.success) {
-            const codigo = Number(res.redirect?.split('/').filter(Boolean).pop());
+            const codigo = editing
+              ? editId
+              : Number(res.redirect?.split('/').filter(Boolean).pop());
             setTimeout(() => {
               router.replace(
                 (Number.isFinite(codigo) && codigo > 0
-                  ? `/cotizaciones?detalle=${codigo}`
+                  ? `/cotizaciones/${codigo}`
                   : '/cotizaciones') as any,
               );
             }, 900);
@@ -341,7 +383,7 @@ export default function NuevaCotizacionScreen() {
       >
         <View style={styles.titleRow}>
           <IconButton icon="arrow-left" onPress={goBack} size={22} />
-          <Text variant="titleMedium" style={styles.titleText}>{t.title.toUpperCase()}</Text>
+          <Text variant="titleMedium" style={styles.titleText}>{(editing ? t.editTitle : t.title).toUpperCase()}{editing ? ` #${editId}` : ''}</Text>
         </View>
 
         <View style={[styles.card, { backgroundColor: colors.surface, borderColor: colors.outlineVariant, borderRadius: roundness }]}>
@@ -474,7 +516,7 @@ export default function NuevaCotizacionScreen() {
           <View style={[styles.actions, isMobile && styles.rowMobile]}>
             <Button
               mode="contained"
-              icon="tag-outline"
+              icon={editing ? 'refresh' : 'tag-outline'}
               onPress={onGenerate}
               loading={solicitar.isPending}
               disabled={solicitar.isPending}
@@ -483,7 +525,7 @@ export default function NuevaCotizacionScreen() {
               style={[styles.action, { borderRadius: roundness - 6 }]}
               contentStyle={styles.actionContent}
             >
-              {t.generate}
+              {editing ? t.requote : t.generate}
             </Button>
             <Button
               mode="outlined"

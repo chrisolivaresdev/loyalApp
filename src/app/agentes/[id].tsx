@@ -10,7 +10,7 @@ import { useSettingsStore } from '@/stores/settings';
 import { palette } from '@/theme';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useEffect } from 'react';
-import { ScrollView, StyleSheet, View } from 'react-native';
+import { ScrollView, StyleProp, StyleSheet, View, ViewStyle } from 'react-native';
 import {
   ActivityIndicator,
   Avatar,
@@ -187,10 +187,10 @@ function InfoRow({ icon, label, value }: { icon: string; label: string; value: s
   );
 }
 
-function SectionCard({ title, icon, children }: { title: string; icon: string; children: React.ReactNode }) {
+function SectionCard({ title, icon, children, style }: { title: string; icon: string; children: React.ReactNode; style?: StyleProp<ViewStyle> }) {
   const { colors, roundness } = useTheme();
   return (
-    <View style={[styles.card, { backgroundColor: colors.surface, borderColor: colors.outlineVariant, borderRadius: roundness + 2 }]}>
+    <View style={[styles.card, style, { backgroundColor: colors.surface, borderColor: colors.outlineVariant, borderRadius: roundness + 2 }]}>
       <View style={styles.cardHeader}>
         <Icon source={icon} size={18} color={palette.indigo[500]} />
         <Text variant="titleSmall">{title}</Text>
@@ -306,7 +306,7 @@ export default function PerfilAgenteScreen() {
 
         <View style={styles.profileRow}>
           {/* Columna izquierda: datos del agente */}
-          <View style={[styles.leftCol, { flex: isDesktop ? 1 : 0 }]}>
+          <View style={[styles.leftCol, { flex: isDesktop ? 1 : 0, minWidth: isDesktop ? 300 : 0, flexBasis: isDesktop ? 300 : undefined, width: isDesktop ? undefined : '100%' }]}>
             <SectionCard title={t.contact} icon="account-outline">
               <View style={styles.agentHead}>
                 <Avatar.Text
@@ -349,7 +349,7 @@ export default function PerfilAgenteScreen() {
           </View>
 
           {/* Columna derecha: cartera y gráficos */}
-          <View style={[styles.rightCol, { flex: isDesktop ? 1.6 : 0 }]}>
+          <View style={[styles.rightCol, { flex: isDesktop ? 1.6 : 0, minWidth: isDesktop ? 340 : 0, flexBasis: isDesktop ? 420 : undefined, width: isDesktop ? undefined : '100%' }]}>
             <View style={[styles.carteraCard, { backgroundColor: palette.indigo[500], borderRadius: roundness + 2 }]}>
               <Text variant="labelLarge" style={{ color: 'rgba(255,255,255,0.85)' }}>
                 {t.portfolio} · {agente.descripcionTipoAgente}
@@ -368,11 +368,11 @@ export default function PerfilAgenteScreen() {
             </View>
 
             <View style={styles.prodRow2}>
-              <SectionCard title={t.ownProduction} icon="chart-pie">
-                <PieChart slices={pieSlices(data.primasPropias)} size={170} />
+              <SectionCard title={t.ownProduction} icon="chart-pie" style={styles.prodHalf}>
+                <PieChart slices={pieSlices(data.primasPropias)} />
               </SectionCard>
-              <SectionCard title={t.agentsProduction} icon="chart-pie">
-                <PieChart slices={pieSlices(data.primasAgentes)} size={170} />
+              <SectionCard title={t.agentsProduction} icon="chart-pie" style={styles.prodHalf}>
+                <PieChart slices={pieSlices(data.primasAgentes)} />
               </SectionCard>
             </View>
           </View>
@@ -543,14 +543,14 @@ const styles = StyleSheet.create({
   carHeader: { flexDirection: 'row', gap: 8, paddingHorizontal: 8, paddingVertical: 8, borderBottomWidth: 1 },
   carRow: { flexDirection: 'row', gap: 8, paddingHorizontal: 8, paddingVertical: 9, borderBottomWidth: StyleSheet.hairlineWidth, alignItems: 'center' },
   carTotalRow: { borderTopWidth: 1, borderBottomWidth: 0 },
-  carAgent: { flex: 1.9, minWidth: 200 },
-  carPol: { flex: 0.7, minWidth: 64, textAlign: 'right' },
+  carAgent: { flex: 1.9, minWidth: 160 },
+  carPol: { flex: 0.7, minWidth: 56, textAlign: 'right' },
   tableGrow: { flexGrow: 1 },
-  tableInner: { flex: 1, minWidth: 760 },
+  tableInner: { flex: 1, minWidth: 620 },
   comGroupHeader: { flexDirection: 'row', alignItems: 'center', gap: 8, paddingHorizontal: 8, paddingVertical: 7, borderBottomWidth: StyleSheet.hairlineWidth },
   carAgentCell: { flexDirection: 'row', alignItems: 'center', gap: 8 },
-  carNum: { flex: 1, minWidth: 95, textAlign: 'right', alignItems: 'flex-end' },
+  carNum: { flex: 1, minWidth: 76, textAlign: 'right', alignItems: 'flex-end' },
   selfChip: { paddingHorizontal: 7, paddingVertical: 2, borderRadius: 999 },
   pctChip: { paddingHorizontal: 8, paddingVertical: 2, borderRadius: 8 },
-  comProduct: { minWidth: 150 },
+  comProduct: { minWidth: 110 },
 });

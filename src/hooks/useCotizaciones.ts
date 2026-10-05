@@ -75,11 +75,12 @@ export function useSolicitarCotizacion() {
   const { codigoAgente } = useCodigoAgente();
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: (dto: Omit<SolicitarCotizacionRequest, 'codigoAgente' | 'codigoCotizacion'>) =>
-      solicitarCotizacion({ ...dto, codigoCotizacion: 0, codigoAgente }),
+    mutationFn: (dto: Omit<SolicitarCotizacionRequest, 'codigoAgente' | 'codigoCotizacion'> & { codigoCotizacion?: number }) =>
+      solicitarCotizacion({ ...dto, codigoCotizacion: dto.codigoCotizacion ?? 0, codigoAgente }),
     onSuccess: (res) => {
       if (res.success) {
         queryClient.invalidateQueries({ queryKey: ['cotizaciones'] });
+        queryClient.invalidateQueries({ queryKey: ['cotizacion'] });
       }
     },
   });

@@ -369,7 +369,7 @@ function carteraSlices(r: CarteraResumen['primasPropias'], t: T) {
 
 function PortfolioComposition({ cartera, t }: { cartera: CarteraResumen; t: T }) {
   const { colors, roundness } = useTheme();
-  const hasAgents = cartera.primasAgentes.total.monto > 0 || cartera.primasAgentes.total.cantidad > 0;
+  // El gráfico de agentes siempre se muestra — PieChart dibuja un círculo vacío si todo es 0
   return (
     <View>
       <View style={{ marginBottom: 12 }}>
@@ -382,20 +382,18 @@ function PortfolioComposition({ cartera, t }: { cartera: CarteraResumen; t: T })
               <Text variant="titleMedium">{t.ownProduction}</Text>
               <Text variant="bodySmall" style={{ color: colors.onSurfaceVariant }}>{formatCurrency(cartera.primasPropias.total.monto)}</Text>
             </View>
-            <PieChart slices={carteraSlices(cartera.primasPropias, t)} size={170} />
+            <PieChart slices={carteraSlices(cartera.primasPropias, t)} />
           </Card.Content>
         </Card>
-        {hasAgents && (
-          <Card style={[styles.card, { borderRadius: roundness + 4, backgroundColor: colors.surface }]}>
-            <Card.Content style={{ gap: 12 }}>
-              <View style={styles.header}>
-                <Text variant="titleMedium">{t.agentsProduction}</Text>
-                <Text variant="bodySmall" style={{ color: colors.onSurfaceVariant }}>{formatCurrency(cartera.primasAgentes.total.monto)}</Text>
-              </View>
-              <PieChart slices={carteraSlices(cartera.primasAgentes, t)} size={170} />
-            </Card.Content>
-          </Card>
-        )}
+        <Card style={[styles.card, { borderRadius: roundness + 4, backgroundColor: colors.surface }]}>
+          <Card.Content style={{ gap: 12 }}>
+            <View style={styles.header}>
+              <Text variant="titleMedium">{t.agentsProduction}</Text>
+              <Text variant="bodySmall" style={{ color: colors.onSurfaceVariant }}>{formatCurrency(cartera.primasAgentes.total.monto)}</Text>
+            </View>
+            <PieChart slices={carteraSlices(cartera.primasAgentes, t)} />
+          </Card.Content>
+        </Card>
       </View>
     </View>
   );

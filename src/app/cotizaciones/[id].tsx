@@ -93,6 +93,7 @@ const labels = {
     emailRequired: 'Ingresá un correo destinatario válido',
     productRequired: 'Seleccioná al menos un producto',
     approve: 'Aprobar cotización',
+    edit: 'Editar',
     approveTitle: 'Aprobar cotización',
     selectProduct: 'Selecciona producto',
     selectPlan: 'Selecciona plan',
@@ -164,6 +165,7 @@ const labels = {
     emailRequired: 'Enter a valid recipient email',
     productRequired: 'Select at least one product',
     approve: 'Approve quote',
+    edit: 'Edit',
     approveTitle: 'Approve quote',
     selectProduct: 'Select product',
     selectPlan: 'Select plan',
@@ -235,6 +237,7 @@ const labels = {
     emailRequired: 'Insira um e-mail destinatário válido',
     productRequired: 'Selecione pelo menos um produto',
     approve: 'Aprovar cotação',
+    edit: 'Editar',
     approveTitle: 'Aprovar cotação',
     selectProduct: 'Selecionar produto',
     selectPlan: 'Selecionar plano',
@@ -618,6 +621,17 @@ export default function CotizacionDetalleScreen() {
             <Text variant="bodyMedium" style={{ color: colors.onSurfaceVariant }}>{data.NombreSolicitante}</Text>
           )}
         </View>
+        {!!data && canExecute(OPCION.cotizaciones) && (
+          <Button
+            mode="contained-tonal"
+            icon="pencil-outline"
+            compact
+            onPress={() => router.push(`/cotizaciones/nueva?id=${codigo}` as any)}
+            style={{ borderRadius: roundness - 4 }}
+          >
+            {t.edit}
+          </Button>
+        )}
         {!!data && canExecute(OPCION.cotizaciones) && (
           <Button
             mode="contained-tonal"

@@ -1,6 +1,7 @@
+import { useState } from 'react';
 import { StyleSheet, View } from 'react-native';
 import { Text, useTheme } from 'react-native-paper';
-import Svg, { Path } from 'react-native-svg';
+import Svg, { Circle, Path } from 'react-native-svg';
 
 export interface PieSlice {
   label: string;
@@ -25,12 +26,15 @@ function slicePath(cx: number, cy: number, r: number, startAngle: number, endAng
   return `M ${cx} ${cy} L ${start.x} ${start.y} A ${r} ${r} 0 ${largeArc} 1 ${end.x} ${end.y} Z`;
 }
 
-export function PieChart({ slices, size = 180 }: PieChartProps) {
+export function PieChart({ slices, size }: PieChartProps) {
   const { colors } = useTheme();
+  const [wrapWidth, setWrapWidth] = useState(0);
+  // Se adapta al ancho disponible de la tarjeta (máx 220)
+  const chartSize = size ?? Math.min(wrapWidth || 190, 220);
   const total = slices.reduce((s, x) => s + Math.max(0, x.value), 0);
-  const cx = size / 2;
-  const cy = size / 2;
-  const r = size / 2 - 2;
+  const cx = chartSize / 2;
+  const cy = chartSize / 2;
+  const r = chartSize / 2 - 2;
 
   let angle = 0;
   const paths = slices
@@ -45,9 +49,11 @@ export function PieChart({ slices, size = 180 }: PieChartProps) {
     });
 
   return (
-    <View style={styles.wrap}>
-      <Svg width={size} height={size}>
-        {total > 0 ? paths : null}
+    <View style={styles.wrap} onLayout={(e) => setWrapWidth(e.nativeEvent.layout.width)}>
+      <Svg width={chartSize} height={chartSize}>
+        {total > 0
+          ? paths
+          : <Circle cx={cx} cy={cy} r={r} fill={colors.surfaceVariant} />}
       </Svg>
       <View style={styles.legend}>
         {slices.map((s, i) => {

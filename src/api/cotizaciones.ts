@@ -225,6 +225,12 @@ export const solicitarCotizacion = (dto: SolicitarCotizacionRequest) =>
     .post<SolicitarCotizacionResponse>('/cotizaciones/solicitar-cotizacion', dto)
     .then((r) => r.data);
 
+/** Cabecera para editar/recotizar (mismo formato que SolicitarCotizacionRequest). */
+export const getCotizacionEdicion = (codigoCotizacion: number) =>
+  api
+    .get<any>(`/cotizaciones/${codigoCotizacion}/edicion`)
+    .then((r) => unwrapObject<SolicitarCotizacionRequest>(r.data, 'codigoCotizacion'));
+
 // ---------------- Enviar cotización por correo ----------------
 
 export interface EnviarCotizacionRequest {

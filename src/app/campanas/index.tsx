@@ -60,8 +60,8 @@ function CampanaExpress({ t, lang }: { t: (typeof labels)['es']; lang: Lang }) {
             <Text variant="labelMedium" style={{ width: 110 }}>{t.effective}</Text>
             <Text variant="labelMedium" style={{ width: 100, textAlign: 'right' }}>{t.premium}</Text>
           </View>
-          {polizas.map((p) => (
-            <View key={p.NumeroPoliza} style={[styles.tableRow, { borderColor: colors.outlineVariant }]}>
+          {polizas.map((p, i) => (
+            <View key={`${p.NumeroPoliza}-${p.FechaInicioVigencia}-${p.Prima}-${i}`} style={[styles.tableRow, { borderColor: colors.outlineVariant }]}>
               <Text variant="bodyMedium" style={{ flex: 1, fontFamily: 'Inter_600SemiBold' }}>{p.NumeroPoliza}</Text>
               <Text variant="bodyMedium" style={{ width: 110 }}>{fmtDate(p.FechaInicioVigencia, lang)}</Text>
               <Text variant="bodyMedium" style={{ width: 100, textAlign: 'right' }}>{fmtMoney(p.Prima)}</Text>
