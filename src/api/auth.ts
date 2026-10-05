@@ -1,3 +1,4 @@
+import { setAuthToken } from '@/utils/tokenStorage';
 import { api } from './client';
 
 export interface User {
@@ -24,20 +25,30 @@ export interface LoginDto {
 export interface LoginResponse {
   message: string;
   user: User;
+  /** JWT también en body para clientes cross-site donde la cookie no viaja. */
+  token?: string;
 }
 
 export const login = (dto: LoginDto) =>
-  api.post<LoginResponse>('/auth/login', dto).then((r) => r.data);
+  api.post<LoginResponse>('/auth/login', dto).then((r) => {
+    if (r.data.token) setAuthToken(r.data.token);
+    return r.data;
+  });
 
-export const logout = () => api.post('/auth/logout').then((r) => r.data);
+export const logout = () =>
+  api.post('/auth/logout').then((r) => r.data).finally(() => setAuthToken(null));
 
 export interface RefreshResponse {
   message: string;
   user: User;
+  token?: string;
 }
 
 export const refresh = () =>
-  api.post<RefreshResponse>('/auth/refresh').then((r) => r.data);
+  api.post<RefreshResponse>('/auth/refresh').then((r) => {
+    if (r.data.token) setAuthToken(r.data.token);
+    return r.data;
+  });
 
 // ---------------- Recuperar / cambiar contraseña ----------------
 

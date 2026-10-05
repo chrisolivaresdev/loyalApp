@@ -1,3 +1,4 @@
+import { getAuthToken, setAuthToken } from '@/utils/tokenStorage';
 import axios from 'axios';
 import { Platform } from 'react-native';
 
@@ -29,6 +30,13 @@ const refreshClient = axios.create({
   withCredentials: true,
 });
 
+// En web cross-site la cookie SameSite=Lax no viaja en XHR → Bearer como fallback.
+api.interceptors.request.use(async (config) => {
+  const token = await getAuthToken();
+  if (token) config.headers.set('Authorization', `Bearer ${token}`);
+  return config;
+});
+
 api.interceptors.response.use(
   (response) => response,
   async (error) => {
@@ -50,7 +58,13 @@ api.interceptors.response.use(
       isRefreshing = true;
 
       try {
-        await refreshClient.post('/auth/refresh');
+        const token = await getAuthToken();
+        const res = await refreshClient.post<{ token?: string }>(
+          '/auth/refresh',
+          null,
+          { headers: token ? { Authorization: `Bearer ${token}` } : undefined },
+        );
+        if (res.data?.token) setAuthToken(res.data.token);
         processQueue(null);
         return api(originalRequest);
       } catch (refreshError) {

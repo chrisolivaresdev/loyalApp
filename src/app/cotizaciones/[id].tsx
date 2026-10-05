@@ -1,6 +1,7 @@
 import { OPCION } from '@/api/agent';
-import { aprobarCotizacion, enviarCotizacion, getCotizacionPdf, getPlanesPorPoliza, PrimaConsulta } from '@/api/cotizaciones';
+import { aprobarCotizacion, enviarCotizacion, getPlanesPorPoliza } from '@/api/cotizaciones';
 import { AppShell } from '@/components/AppShell';
+import { PdfPreview } from '@/components/PdfPreview';
 import { useLogout } from '@/hooks/useAuth';
 import { useCotizacion } from '@/hooks/useCotizaciones';
 import { usePermisos, useRequirePermiso } from '@/hooks/usePermisos';
@@ -11,7 +12,7 @@ import { palette } from '@/theme';
 import { saveCotizacionPdf } from '@/utils/quotePdf';
 import { useMutation, useQuery } from '@tanstack/react-query';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import { useEffect, useMemo, useState } from 'react';
+import { useMemo, useState } from 'react';
 import { Platform, ScrollView, StyleSheet, View } from 'react-native';
 import {
     ActivityIndicator,
@@ -256,17 +257,12 @@ const PRODUCT_SUFFIX: Record<number, string> = {
   1: 'Beyond', 2: 'Privilege', 3: 'Liberty', 4: 'Legacy', 5: 'Essential', 6: 'CriticalCare',
 };
 
-const PERSON_LABEL: Record<string, keyof T> = { '01': 'holder', '02': 'spouse', '03': 'dependent', T: 'holder', C: 'spouse', D: 'dependent' };
-
-function InfoRow({ label, value, paper }: { label: string; value?: string | number | null; paper?: boolean }) {
+function InfoRow({ label, value }: { label: string; value?: string | number | null }) {
   const { colors } = useTheme();
-  // paper: la previa es un documento con fondo blanco fijo → texto oscuro siempre
-  const labelColor = paper ? palette.slate[500] : colors.onSurfaceVariant;
-  const valueColor = paper ? palette.slate[900] : colors.onSurface;
   return (
     <View style={styles.infoRow}>
-      <Text variant="bodyMedium" style={{ color: labelColor }}>{label}</Text>
-      <Text variant="bodyMedium" style={{ fontFamily: 'Inter_600SemiBold', flexShrink: 1, textAlign: 'right', color: valueColor }} numberOfLines={2}>
+      <Text variant="bodyMedium" style={{ color: colors.onSurfaceVariant }}>{label}</Text>
+      <Text variant="bodyMedium" style={{ fontFamily: 'Inter_600SemiBold', flexShrink: 1, textAlign: 'right', color: colors.onSurface }} numberOfLines={2}>
         {value ?? '—'}
       </Text>
     </View>
@@ -287,47 +283,6 @@ function EstadoChip({ desc }: { desc?: string }) {
   );
 }
 
-function PrimasTable({ primas, t }: { primas: PrimaConsulta[]; t: T }) {
-  const { colors } = useTheme();
-  const optionCols = useMemo(() => {
-    let max = 0;
-    primas.forEach((p) => {
-      for (let i = 6; i >= 1; i--) {
-        const v = (p as any)[`Opcion${i}`];
-        if (v !== undefined && v !== null && String(v).trim() !== '') { max = Math.max(max, i); break; }
-      }
-    });
-    return max;
-  }, [primas]);
-
-  if (!primas.length) return null;
-
-  return (
-    <ScrollView horizontal>
-      <View style={{ minWidth: 360 }}>
-        <View style={[styles.pRow, { backgroundColor: palette.navy[700] }]}>
-          <Text variant="labelSmall" style={[styles.pCell0, { color: '#FFFFFF' }]}>{t.person}</Text>
-          <Text variant="labelSmall" style={[styles.pCell0, { color: '#FFFFFF' }]}>{t.coverage}</Text>
-          {Array.from({ length: optionCols }, (_, i) => (
-            <Text key={i} variant="labelSmall" style={[styles.pCell, { color: '#FFFFFF' }]}>Op {i + 1}</Text>
-          ))}
-        </View>
-        {primas.map((p, idx) => (
-          <View key={idx} style={[styles.pRow, { borderBottomWidth: 1, borderBottomColor: colors.outlineVariant }]}>
-            <Text variant="bodySmall" style={styles.pCell0}>{t[PERSON_LABEL[p.TipoPersona] ?? 'person']}</Text>
-            <Text variant="bodySmall" style={styles.pCell0}>{String(p.Cobertura)}</Text>
-            {Array.from({ length: optionCols }, (_, i) => (
-              <Text key={i} variant="bodySmall" style={styles.pCell} numberOfLines={1}>
-                {String((p as any)[`Opcion${i + 1}`] ?? '').trim() || '—'}
-              </Text>
-            ))}
-          </View>
-        ))}
-      </View>
-    </ScrollView>
-  );
-}
-
 export default function CotizacionDetalleScreen() {
   const router = useRouter();
   const allowed = useRequirePermiso(OPCION.cotizaciones);
@@ -345,7 +300,6 @@ export default function CotizacionDetalleScreen() {
   const { data, isLoading, isError, refetch } = useCotizacion(codigo, canSee(OPCION.cotizaciones));
   const [producto, setProducto] = useState<number | undefined>();
   const [tipoVenta, setTipoVenta] = useState<'01' | '02'>('01');
-  const [pdfUrl, setPdfUrl] = useState<string | null>(null);
   const [pdfState, setPdfState] = useState<'idle' | 'loading' | 'error'>('idle');
   const [snack, setSnack] = useState('');
 
@@ -434,25 +388,6 @@ export default function CotizacionDetalleScreen() {
   const productoNombre = productos.find((p) => p.CodigoPoliza === productoSel)?.DescripcionPoliza ?? '';
   const fileName = `LOYAL - Cotizacion Nro.${codigo} - ${(data?.NombreSolicitante ?? '').trim()}-${productoNombre || productoSel}.pdf`;
 
-  // Web: descargar el blob y exponerlo como objectURL para el iframe (previa real del PDF)
-  useEffect(() => {
-    if (Platform.OS !== 'web' || !codigo || !productoSel) return;
-    let revoke: string | undefined;
-    let alive = true;
-    setPdfState('loading');
-    setPdfUrl(null);
-    getCotizacionPdf(codigo, productoSel, tipoVenta)
-      .then((blob) => {
-        if (!alive) return;
-        const url = URL.createObjectURL(blob);
-        revoke = url;
-        setPdfUrl(url);
-        setPdfState('idle');
-      })
-      .catch(() => { if (alive) setPdfState('error'); });
-    return () => { alive = false; if (revoke) URL.revokeObjectURL(revoke); };
-  }, [codigo, productoSel, tipoVenta]);
-
   const downloadPdf = async () => {
     if (!codigo || !productoSel || pdfState === 'loading') return;
     setPdfState('loading');
@@ -465,15 +400,6 @@ export default function CotizacionDetalleScreen() {
       setPdfState('idle');
     }
   };
-
-  const freqKeys = productoSel
-    ? [
-      { freq: 'Anual', label: t.annual, key: `ListaPrimasAnual${PRODUCT_SUFFIX[productoSel]}` },
-      { freq: 'SemiAnual', label: t.semiannual, key: `ListaPrimasSemiAnual${PRODUCT_SUFFIX[productoSel]}` },
-      { freq: 'Trimestral', label: t.quarterly, key: `ListaPrimasTrimestral${PRODUCT_SUFFIX[productoSel]}` },
-      { freq: 'Mensual', label: t.monthly, key: `ListaPrimasMensual${PRODUCT_SUFFIX[productoSel]}` },
-    ]
-    : [];
 
   const infoCard = data && (
     <View style={[styles.card, { backgroundColor: colors.surface, borderColor: colors.outlineVariant, borderRadius: roundness }]}>
@@ -535,57 +461,13 @@ export default function CotizacionDetalleScreen() {
 
       <Text variant="labelMedium" style={{ color: colors.onSurfaceVariant, marginTop: 12 }}>{t.preview}</Text>
 
-      {Platform.OS === 'web' ? (
-        <View style={[styles.pdfFrame, { borderColor: colors.outlineVariant, borderRadius: roundness - 4 }]}>
-          {pdfState === 'loading' && (
-            <View style={styles.pdfCenter}>
-              <ActivityIndicator animating />
-              <Text variant="bodySmall" style={{ color: colors.onSurfaceVariant, marginTop: 8 }}>{t.loadingPdf}</Text>
-            </View>
-          )}
-          {pdfState === 'error' && (
-            <View style={styles.pdfCenter}>
-              <Icon source="file-alert-outline" size={32} color={colors.onSurfaceVariant} />
-              <Text variant="bodySmall" style={{ color: colors.onSurfaceVariant, marginTop: 8 }}>{t.pdfError}</Text>
-            </View>
-          )}
-          {pdfUrl ? (
-            Platform.OS === 'web' &&
-            <iframe src={`${pdfUrl}#toolbar=0&navpanes=0&scrollbar=0`} title="Cotizacion PDF" style={{ width: '100%', height: '100%', border: 'none' }} />
-          ) : pdfState === 'idle' ? null : null}
-        </View>
-      ) : (
-        <View style={[styles.nativePreview, { borderColor: colors.outlineVariant, borderRadius: roundness - 4 }]}>
-          {/* Previa estilo documento (el PDF incluye el folleto del producto) */}
-          <View style={styles.docHeader}>
-            <Text variant="headlineSmall" style={{ color: palette.navy[800] }}>Loyal</Text>
-            <Text variant="titleLarge" style={{ color: palette.indigo[600] }}>{productoNombre}</Text>
-          </View>
-          <View style={styles.docInfo}>
-            <View style={{ flex: 1 }}>
-              <InfoRow paper label={t.name} value={data?.NombreSolicitante} />
-              <InfoRow paper label={t.age} value={data?.EdadSolicitante} />
-              <InfoRow paper label={t.dependents} value={data?.NumeroDependientes} />
-              <InfoRow paper label={t.country} value={data?.DescripcionPais} />
-            </View>
-            <View style={{ flex: 1 }}>
-              <InfoRow paper label={t.agent} value={user?.NombreCompletoUsuario} />
-              <InfoRow paper label={t.code} value={codigo} />
-              <InfoRow paper label={t.email} value={data?.Correo?.trim()} />
-            </View>
-          </View>
-          {freqKeys.map((f) => {
-            const primas = ((data as any)?.[f.key] ?? []) as PrimaConsulta[];
-            if (!primas.length) return null;
-            return (
-              <View key={f.key} style={{ marginTop: 8 }}>
-                <Text variant="labelLarge" style={{ color: palette.navy[700], marginBottom: 4 }}>{f.label}</Text>
-                <PrimasTable primas={primas} t={t} />
-              </View>
-            );
-          })}
-        </View>
-      )}
+      <PdfPreview
+        codigo={codigo}
+        producto={productoSel}
+        tipoVenta={tipoVenta}
+        loadingLabel={t.loadingPdf}
+        errorLabel={t.pdfError}
+      />
 
       <Button
         mode="contained"
@@ -618,7 +500,7 @@ export default function CotizacionDetalleScreen() {
     >
       <View style={styles.header}>
         <IconButton icon="arrow-left" size={22} onPress={() => router.back()} />
-        <View style={{ flex: 1 }}>
+        <View style={{ flex: 1, minWidth: 180 }}>
           <Text variant="headlineSmall">{t.quote} #{id}</Text>
           {!!data?.NombreSolicitante && (
             <Text variant="bodyMedium" style={{ color: colors.onSurfaceVariant }}>{data.NombreSolicitante}</Text>
@@ -819,12 +701,4 @@ const styles = StyleSheet.create({
   chipRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginTop: 4 },
   status: { flexDirection: 'row', alignItems: 'center', gap: 6, borderRadius: 999, paddingHorizontal: 10, paddingVertical: 5 },
   statusDot: { width: 6, height: 6, borderRadius: 3, backgroundColor: '#FFFFFF' },
-  pdfFrame: { borderWidth: 1, height: 640, marginTop: 6, overflow: 'hidden', backgroundColor: '#525659' },
-  pdfCenter: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, alignItems: 'center', justifyContent: 'center', zIndex: 1 },
-  nativePreview: { borderWidth: 1, padding: 16, marginTop: 6, backgroundColor: '#FFFFFF' },
-  docHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 },
-  docInfo: { flexDirection: 'row', gap: 16 },
-  pRow: { flexDirection: 'row', alignItems: 'center', gap: 8, paddingHorizontal: 8, paddingVertical: 6 },
-  pCell0: { width: 76 },
-  pCell: { width: 72, textAlign: 'right' },
 });
