@@ -7,16 +7,16 @@ import { palette } from '@/theme';
 import { LinearGradient } from 'expo-linear-gradient';
 import { usePathname, useRouter } from 'expo-router';
 import { ReactNode, useState } from 'react';
-import { ScrollView, StyleSheet, View } from 'react-native';
+import { Image, ScrollView, StyleSheet, View } from 'react-native';
 import {
-  Avatar,
-  Divider,
-  Icon,
-  IconButton,
-  Menu,
-  Text,
-  TouchableRipple,
-  useTheme
+    Avatar,
+    Divider,
+    Icon,
+    IconButton,
+    Menu,
+    Text,
+    TouchableRipple,
+    useTheme
 } from 'react-native-paper';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
@@ -149,18 +149,16 @@ function Brand({ compact = false, light = true, lang = 'es' }: { compact?: boole
   const fg = light ? '#FFFFFF' : palette.indigo[800];
   return (
     <View style={styles.brand}>
-      <View style={[styles.logo, { backgroundColor: palette.gold[500] }]}>
-        <Icon source="shield-check" size={22} color={palette.indigo[900]} />
-      </View>
+      <Image
+        source={require('../../assets/images/logo-loyal-blanco.png')}
+        style={{ height: 44, width: compact ? 44 : 150 }}
+        resizeMode="contain"
+        accessibilityLabel="Loyal Major Medical"
+      />
       {!compact && (
-        <View>
-          <Text variant="titleMedium" style={{ color: fg, lineHeight: 20 }}>
-            Loyal
-          </Text>
-          <Text variant="labelSmall" style={{ color: fg, opacity: 0.7 }}>
-            {BRAND_SUBTITLE[lang]}
-          </Text>
-        </View>
+        <Text variant="labelSmall" style={{ color: fg, opacity: 0.7 }}>
+          {BRAND_SUBTITLE[lang]}
+        </Text>
       )}
     </View>
   );

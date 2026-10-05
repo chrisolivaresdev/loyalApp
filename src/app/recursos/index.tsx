@@ -1,6 +1,6 @@
-import { OPCION } from '@/api/agent';
+import { constanciaUrl, OPCION } from '@/api/agent';
 import { archivoRecursoUrl, RecursoCategoria, RecursoDocumento } from '@/api/recursos';
-import { AppShell, Lang } from '@/components/AppShell';
+import { AppShell } from '@/components/AppShell';
 import { useLogout } from '@/hooks/useAuth';
 import { usePermisos, useRequirePermiso } from '@/hooks/usePermisos';
 import { useRecursos } from '@/hooks/useRecursos';
@@ -12,21 +12,21 @@ import * as FileSystem from 'expo-file-system/legacy';
 import { useRouter } from 'expo-router';
 import * as Sharing from 'expo-sharing';
 import { useState } from 'react';
-import { Linking, Platform, ScrollView, StyleSheet, View } from 'react-native';
+import { Linking, Platform, StyleSheet, View } from 'react-native';
 import {
-  ActivityIndicator,
-  Button,
-  Icon,
-  Searchbar,
-  Text,
-  TouchableRipple,
-  useTheme,
+    ActivityIndicator,
+    Button,
+    Icon,
+    Searchbar,
+    Text,
+    TouchableRipple,
+    useTheme,
 } from 'react-native-paper';
 
 const labels = {
-  es: { title: 'Recursos del Agente', subtitle: 'Documentos, planillas y materiales de apoyo', search: 'Buscar documento...', loading: 'Cargando recursos...', error: 'Error al cargar los recursos', retry: 'Reintentar', empty: 'Sin resultados', docs: 'documentos', openDoc: 'Abrir' },
-  en: { title: 'Agent Resources', subtitle: 'Documents, forms and support materials', search: 'Search document...', loading: 'Loading resources...', error: 'Error loading resources', retry: 'Retry', empty: 'No results', docs: 'documents', openDoc: 'Open' },
-  pt: { title: 'Recursos do Agente', subtitle: 'Documentos, formulários e materiais de apoio', search: 'Buscar documento...', loading: 'Carregando recursos...', error: 'Erro ao carregar os recursos', retry: 'Tentar novamente', empty: 'Sem resultados', docs: 'documentos', openDoc: 'Abrir' },
+  es: { title: 'Recursos del Agente', subtitle: 'Documentos, planillas y materiales de apoyo', search: 'Buscar documento...', loading: 'Cargando recursos...', error: 'Error al cargar los recursos', retry: 'Reintentar', empty: 'Sin resultados', docs: 'documentos', openDoc: 'Abrir', constancia: 'Constancia de Agente' },
+  en: { title: 'Agent Resources', subtitle: 'Documents, forms and support materials', search: 'Search document...', loading: 'Loading resources...', error: 'Error loading resources', retry: 'Retry', empty: 'No results', docs: 'documents', openDoc: 'Open', constancia: 'Agent Certificate' },
+  pt: { title: 'Recursos do Agente', subtitle: 'Documentos, formulários e materiais de apoio', search: 'Buscar documento...', loading: 'Carregando recursos...', error: 'Erro ao carregar os recursos', retry: 'Tentar novamente', empty: 'Sem resultados', docs: 'documentos', openDoc: 'Abrir', constancia: 'Constância de Agente' },
 };
 
 const extIcon = (archivo = '', url = '') => {
@@ -105,6 +105,24 @@ export default function RecursosScreen() {
     } catch {
       // silencioso: el usuario puede reintentar
     } finally {
+      setOpening('');
+    }
+  };
+
+  /** Descarga la constancia del agente (portal: Home/DownloadConstancia). */
+  const openConstancia = async () => {
+    if (!canOpen || opening === t.constancia) return;
+    setOpening(t.constancia);
+    try {
+      const url = constanciaUrl();
+      if (Platform.OS === 'web') {
+        window.open(url, '_blank');
+      } else {
+        const { uri } = await FileSystem.downloadAsync(url, `${FileSystem.cacheDirectory}constancia-agente.pdf`);
+        if (await Sharing.isAvailableAsync()) await Sharing.shareAsync(uri, { dialogTitle: t.constancia });
+        else await Linking.openURL(uri);
+      }
+    } catch { /* silencioso */ } finally {
       setOpening('');
     }
   };
@@ -210,6 +228,18 @@ export default function RecursosScreen() {
         </View>
       </View>
 
+      {canOpen && (
+        <TouchableRipple onPress={openConstancia} borderless>
+          <View style={[styles.constanciaRow, { backgroundColor: colors.surface, borderColor: colors.outlineVariant, borderRadius: roundness + 2 }]}>
+            <View style={[styles.constanciaIcon, { backgroundColor: palette.indigo[50], borderRadius: roundness - 2 }]}>
+              <Icon source="file-certificate-outline" size={20} color={palette.indigo[500]} />
+            </View>
+            <Text variant="bodyMedium" style={{ flex: 1, fontFamily: 'Inter_600SemiBold', color: palette.indigo[600] }}>{t.constancia}</Text>
+            {opening === t.constancia ? <ActivityIndicator size={16} /> : <Icon source="download-outline" size={18} color={colors.onSurfaceVariant} />}
+          </View>
+        </TouchableRipple>
+      )}
+
       <Searchbar
         placeholder={t.search}
         value={search}
@@ -231,4 +261,6 @@ const styles = StyleSheet.create({
   card: { borderWidth: 1, overflow: 'hidden' },
   catRow: { flexDirection: 'row', alignItems: 'center', gap: 10, paddingVertical: 12, paddingRight: 14 },
   docRow: { flexDirection: 'row', alignItems: 'center', gap: 10, paddingVertical: 10, paddingRight: 14, borderBottomWidth: StyleSheet.hairlineWidth },
+  constanciaRow: { flexDirection: 'row', alignItems: 'center', gap: 12, padding: 12, borderWidth: 1 },
+  constanciaIcon: { width: 36, height: 36, alignItems: 'center', justifyContent: 'center' },
 });

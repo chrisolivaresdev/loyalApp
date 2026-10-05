@@ -1,3 +1,4 @@
+import { getCampanaExpress, PolizaCampanaExpress } from '@/api/agent';
 import { Campana, imagenUrl } from '@/api/imagenes';
 import { AppShell, Lang } from '@/components/AppShell';
 import { useLogout } from '@/hooks/useAuth';
@@ -5,25 +6,77 @@ import { useCampanas } from '@/hooks/useImagenes';
 import { useAuthStore } from '@/stores/auth';
 import { useSettingsStore } from '@/stores/settings';
 import { palette } from '@/theme';
+import { useQuery } from '@tanstack/react-query';
 import { useRouter } from 'expo-router';
 import { useRef, useState } from 'react';
 import { Image, ScrollView, StyleSheet, View } from 'react-native';
 import {
-  ActivityIndicator,
-  Button,
-  Chip,
-  Icon,
-  IconButton,
-  Text,
-  TouchableRipple,
-  useTheme,
+    ActivityIndicator,
+    Button,
+    Chip,
+    Icon,
+    IconButton,
+    Text,
+    TouchableRipple,
+    useTheme,
 } from 'react-native-paper';
 
 const labels = {
-  es: { title: 'Resultados de Campañas', loading: 'Cargando fotos...', error: 'Error al cargar las fotos', retry: 'Reintentar', empty: 'No hay fotos disponibles', photo: 'Foto' },
-  en: { title: 'Campaign Results', loading: 'Loading photos...', error: 'Error loading photos', retry: 'Retry', empty: 'No photos available', photo: 'Photo' },
-  pt: { title: 'Resultados de Campanhas', loading: 'Carregando fotos...', error: 'Erro ao carregar as fotos', retry: 'Tentar novamente', empty: 'Sem fotos disponíveis', photo: 'Foto' },
+  es: { title: 'Resultados de Campañas', loading: 'Cargando fotos...', error: 'Error al cargar las fotos', retry: 'Reintentar', empty: 'No hay fotos disponibles', photo: 'Foto', express: 'Campaña Express', expressEmpty: 'Aún no tenés pólizas que califican', policy: 'Póliza', effective: 'Vigencia', premium: 'Prima', total: 'Total' },
+  en: { title: 'Campaign Results', loading: 'Loading photos...', error: 'Error loading photos', retry: 'Retry', empty: 'No photos available', photo: 'Photo', express: 'Express Campaign', expressEmpty: 'No qualifying policies yet', policy: 'Policy', effective: 'Effective', premium: 'Premium', total: 'Total' },
+  pt: { title: 'Resultados de Campanhas', loading: 'Carregando fotos...', error: 'Erro ao carregar as fotos', retry: 'Tentar novamente', empty: 'Sem fotos disponíveis', photo: 'Foto', express: 'Campanha Express', expressEmpty: 'Ainda não há apólices que qualificam', policy: 'Apólice', effective: 'Vigência', premium: 'Prêmio', total: 'Total' },
 };
+
+const fmtMoney = (n: number) => `$${(Number(n) || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+const fmtDate = (v: string, lang: Lang) => {
+  const d = new Date(v);
+  return Number.isNaN(d.getTime()) ? v : d.toLocaleDateString(lang === 'pt' ? 'pt-BR' : lang === 'en' ? 'en-US' : 'es-ES');
+};
+
+/** Pólizas que califican a la Campaña Express (portal: Dashboard/CampanaExpress). */
+function CampanaExpress({ t, lang }: { t: (typeof labels)['es']; lang: Lang }) {
+  const { colors, roundness } = useTheme();
+  const { data, isLoading } = useQuery({ queryKey: ['campana-express'], queryFn: getCampanaExpress });
+  const polizas = data ?? [];
+  if (isLoading) return <ActivityIndicator animating style={{ marginVertical: 12 }} />;
+
+  const total = polizas.reduce((acc: number, p: PolizaCampanaExpress) => acc + (Number(p.Prima) || 0), 0);
+
+  return (
+    <View style={[styles.card, { backgroundColor: colors.surface, borderColor: colors.outlineVariant, borderRadius: roundness + 2, marginTop: 14 }]}>
+      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 12 }}>
+        <Icon source="rocket-launch-outline" size={20} color={palette.indigo[500]} />
+        <Text variant="titleMedium">{t.express}</Text>
+        <View style={[styles.dot, { backgroundColor: palette.indigo[50], width: 'auto', paddingHorizontal: 8, height: 20, justifyContent: 'center', borderRadius: 10 }]}>
+          <Text variant="labelSmall" style={{ color: palette.indigo[600] }}>{polizas.length}</Text>
+        </View>
+      </View>
+      {polizas.length === 0 ? (
+        <Text variant="bodyMedium" style={{ color: colors.onSurfaceVariant }}>{t.expressEmpty}</Text>
+      ) : (
+        <>
+          <View style={[styles.tableRow, styles.tableHeader, { borderColor: colors.outlineVariant }]}>
+            <Text variant="labelMedium" style={{ flex: 1 }}>{t.policy}</Text>
+            <Text variant="labelMedium" style={{ width: 110 }}>{t.effective}</Text>
+            <Text variant="labelMedium" style={{ width: 100, textAlign: 'right' }}>{t.premium}</Text>
+          </View>
+          {polizas.map((p) => (
+            <View key={p.NumeroPoliza} style={[styles.tableRow, { borderColor: colors.outlineVariant }]}>
+              <Text variant="bodyMedium" style={{ flex: 1, fontFamily: 'Inter_600SemiBold' }}>{p.NumeroPoliza}</Text>
+              <Text variant="bodyMedium" style={{ width: 110 }}>{fmtDate(p.FechaInicioVigencia, lang)}</Text>
+              <Text variant="bodyMedium" style={{ width: 100, textAlign: 'right' }}>{fmtMoney(p.Prima)}</Text>
+            </View>
+          ))}
+          <View style={[styles.tableRow, styles.tableHeader, { borderColor: colors.outlineVariant }]}>
+            <Text variant="labelMedium" style={{ flex: 1 }}>{t.total}</Text>
+            <Text variant="labelMedium" style={{ width: 110 }}>{' '}</Text>
+            <Text variant="labelMedium" style={{ width: 100, textAlign: 'right', color: palette.indigo[600] }}>{fmtMoney(total)}</Text>
+          </View>
+        </>
+      )}
+    </View>
+  );
+}
 
 function Gallery({ campana, t }: { campana: Campana; t: (typeof labels)['es'] }) {
   const { colors, roundness } = useTheme();
@@ -145,6 +198,8 @@ export default function CampanasScreen() {
     );
   };
 
+  const body = renderBody();
+
   return (
     <AppShell
       title={t.title}
@@ -162,7 +217,8 @@ export default function CampanasScreen() {
       onAgentes={() => router.push('/agentes' as any)}
       onPersonal={() => router.push('/personal' as any)}
     >
-      {renderBody()}
+      {body}
+      <CampanaExpress t={t} lang={lang} />
     </AppShell>
   );
 }
@@ -184,4 +240,6 @@ const styles = StyleSheet.create({
   thumbs: { gap: 8, paddingVertical: 2 },
   thumb: { width: 76, height: 54, borderRadius: 10, borderWidth: 2, backgroundColor: '#0B0B0B' },
   thumbActive: { borderWidth: 2 },
+  tableRow: { flexDirection: 'row', alignItems: 'center', paddingVertical: 9, paddingHorizontal: 4, borderBottomWidth: 1 },
+  tableHeader: { backgroundColor: 'rgba(0,0,0,0.02)' },
 });

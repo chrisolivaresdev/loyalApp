@@ -1,5 +1,5 @@
 import { OPCION } from '@/api/agent';
-import { SolicitudListItem } from '@/api/solicitudes';
+import { reporteSolicitudesUrl, SolicitudListItem } from '@/api/solicitudes';
 import { AppShell } from '@/components/AppShell';
 import { useLogout } from '@/hooks/useAuth';
 import { usePermisos, useRequirePermiso } from '@/hooks/usePermisos';
@@ -8,9 +8,11 @@ import { useSolicitudes } from '@/hooks/useSolicitudes';
 import { useAuthStore } from '@/stores/auth';
 import { useSettingsStore } from '@/stores/settings';
 import { palette } from '@/theme';
+import * as FileSystem from 'expo-file-system/legacy';
 import { useRouter } from 'expo-router';
+import * as Sharing from 'expo-sharing';
 import { useMemo, useState } from 'react';
-import { ScrollView, StyleSheet, View } from 'react-native';
+import { Platform, ScrollView, StyleSheet, View } from 'react-native';
 import {
   ActivityIndicator,
   Button,
@@ -60,6 +62,9 @@ const labels = {
     denied: 'Denegada',
     voided: 'Anulada',
     postponed: 'Pospuesta',
+    exportExcel: 'Excel',
+    exportPdf: 'PDF',
+    exporting: 'Exportando…',
   },
   en: {
     title: 'Requests',
@@ -93,6 +98,9 @@ const labels = {
     inProgress: 'Registration in progress',
     pendingUw: 'Pending UW',
     approved: 'Approved',
+    exportExcel: 'Excel',
+    exportPdf: 'PDF',
+    exporting: 'Exporting…',
     denied: 'Denied',
     voided: 'Voided',
     postponed: 'Postponed',
@@ -132,6 +140,9 @@ const labels = {
     denied: 'Negada',
     voided: 'Anulada',
     postponed: 'Postergada',
+    exportExcel: 'Excel',
+    exportPdf: 'PDF',
+    exporting: 'Exportando…',
   },
 };
 
@@ -176,9 +187,10 @@ function StatusChip({ code, description }: { code: string; description?: string 
 
 const fmtMoney = (n: number) => `$${(Number(n) || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 
-function SolicitudCard({ s, t }: { s: SolicitudListItem; t: T }) {
+function SolicitudCard({ s, t, onPress }: { s: SolicitudListItem; t: T; onPress: () => void }) {
   const { colors, roundness } = useTheme();
   return (
+    <TouchableRipple onPress={onPress} borderless style={{ borderRadius: roundness + 2 }}>
     <View style={[styles.card, { backgroundColor: colors.surface, borderColor: colors.outlineVariant, borderRadius: roundness + 2 }]}>
       <View style={styles.cardTop}>
         <View style={[styles.codeBadge, { backgroundColor: palette.indigo[50] }]}>
@@ -206,12 +218,14 @@ function SolicitudCard({ s, t }: { s: SolicitudListItem; t: T }) {
         <Text variant="titleMedium" style={{ color: palette.indigo[600] }}>{fmtMoney(s.Prima)}</Text>
       </View>
     </View>
+    </TouchableRipple>
   );
 }
 
-function SolicitudRow({ s, t }: { s: SolicitudListItem; t: T }) {
+function SolicitudRow({ s, t, onPress }: { s: SolicitudListItem; t: T; onPress: () => void }) {
   const { colors } = useTheme();
   return (
+    <TouchableRipple onPress={onPress} borderless>
     <View style={[styles.tr, { borderBottomColor: colors.outlineVariant }]}>
       <Text variant="labelLarge" style={[styles.colCode, { color: palette.indigo[600] }]}>#{s.CodigoSolicitud}</Text>
       <Text variant="bodyMedium" style={styles.colPolicy} numberOfLines={1}>{s.NumeroPoliza || '—'}</Text>
@@ -228,6 +242,7 @@ function SolicitudRow({ s, t }: { s: SolicitudListItem; t: T }) {
         <StatusChip code={s.CodigoEstadoSolicitud} description={s.DescripcionEstadoSolicitud} />
       </View>
     </View>
+    </TouchableRipple>
   );
 }
 
@@ -332,6 +347,23 @@ export default function SolicitudesScreen() {
   const changeLimit = (value: number) => { setLimit(value); setPage(1); };
   const goPage = (p: number) => setPage(Math.min(Math.max(1, p), totalPages));
 
+  const [exporting, setExporting] = useState('');
+  const exportar = async (formato: 'excel' | 'pdf') => {
+    const url = reporteSolicitudesUrl(formato, estado);
+    const nombre = `solicitudes.${formato === 'excel' ? 'xlsx' : 'pdf'}`;
+    try {
+      setExporting(formato);
+      if (Platform.OS === 'web') {
+        window.open(url, '_blank');
+      } else {
+        const { uri } = await FileSystem.downloadAsync(url, `${FileSystem.cacheDirectory}${nombre}`);
+        if (await Sharing.isAvailableAsync()) await Sharing.shareAsync(uri, { dialogTitle: nombre });
+      }
+    } finally {
+      setExporting('');
+    }
+  };
+
   if (!allowed) return null;
 
   return (
@@ -352,6 +384,14 @@ export default function SolicitudesScreen() {
         <View style={{ flex: 1, gap: 2 }}>
           <Text variant="headlineSmall">{t.requests}</Text>
           <Text variant="bodyMedium" style={{ color: colors.onSurfaceVariant }}>{t.subtitle}</Text>
+        </View>
+        <View style={{ flexDirection: 'row', gap: 6 }}>
+          <Button mode="outlined" icon="file-excel-outline" compact onPress={() => exportar('excel')} loading={exporting === 'excel'} disabled={!!exporting} style={{ borderRadius: roundness - 4 }}>
+            {exporting === 'excel' ? t.exporting : t.exportExcel}
+          </Button>
+          <Button mode="outlined" icon="file-pdf-box" compact onPress={() => exportar('pdf')} loading={exporting === 'pdf'} disabled={!!exporting} style={{ borderRadius: roundness - 4 }}>
+            {exporting === 'pdf' ? t.exporting : t.exportPdf}
+          </Button>
         </View>
       </View>
 
@@ -434,7 +474,7 @@ export default function SolicitudesScreen() {
             <Text variant="labelMedium" style={[styles.colStatus, { color: colors.onSurfaceVariant }]}>{t.status}</Text>
           </View>
           {solicitudes.map((s) => (
-            <SolicitudRow key={s.CodigoSolicitud} s={s} t={t} />
+            <SolicitudRow key={s.CodigoSolicitud} s={s} t={t} onPress={() => router.push(`/solicitudes/${s.CodigoSolicitud}` as any)} />
           ))}
           <Paginator
             page={meta?.page ?? page}
@@ -451,7 +491,7 @@ export default function SolicitudesScreen() {
       ) : (
         <View style={styles.list}>
           {solicitudes.map((s) => (
-            <SolicitudCard key={s.CodigoSolicitud} s={s} t={t} />
+            <SolicitudCard key={s.CodigoSolicitud} s={s} t={t} onPress={() => router.push(`/solicitudes/${s.CodigoSolicitud}` as any)} />
           ))}
           <View style={[styles.table, { backgroundColor: colors.surface, borderColor: colors.outlineVariant, borderRadius: roundness }]}>
             <Paginator

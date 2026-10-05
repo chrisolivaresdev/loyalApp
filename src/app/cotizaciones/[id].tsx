@@ -1,5 +1,5 @@
 import { OPCION } from '@/api/agent';
-import { getCotizacionPdf, PrimaConsulta } from '@/api/cotizaciones';
+import { aprobarCotizacion, enviarCotizacion, getCotizacionPdf, getPlanesPorPoliza, PrimaConsulta } from '@/api/cotizaciones';
 import { AppShell } from '@/components/AppShell';
 import { useLogout } from '@/hooks/useAuth';
 import { useCotizacion } from '@/hooks/useCotizaciones';
@@ -9,20 +9,25 @@ import { useAuthStore } from '@/stores/auth';
 import { useSettingsStore } from '@/stores/settings';
 import { palette } from '@/theme';
 import { saveCotizacionPdf } from '@/utils/quotePdf';
+import { useMutation, useQuery } from '@tanstack/react-query';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useEffect, useMemo, useState } from 'react';
 import { Platform, ScrollView, StyleSheet, View } from 'react-native';
 import {
-  ActivityIndicator,
-  Button,
-  Chip,
-  Divider,
-  Icon,
-  IconButton,
-  SegmentedButtons,
-  Snackbar,
-  Text,
-  useTheme
+    ActivityIndicator,
+    Button,
+    Checkbox,
+    Chip,
+    Dialog,
+    Divider,
+    Icon,
+    IconButton,
+    Portal,
+    SegmentedButtons,
+    Snackbar,
+    Text,
+    TextInput,
+    useTheme
 } from 'react-native-paper';
 
 const labels = {
@@ -75,6 +80,27 @@ const labels = {
     error: 'No pudimos cargar la cotización',
     retry: 'Reintentar',
     saved: 'PDF descargado',
+    send: 'Enviar por correo',
+    sendTitle: 'Enviar cotización',
+    products: 'Selecciona producto',
+    to: 'Para:',
+    cc: 'Con copia a:',
+    bcc: 'Con copia oculta a:',
+    sendBtn: 'Enviar correo',
+    cancel: 'Cancelar',
+    sending: 'Enviando…',
+    errSend: 'No se pudo enviar la cotización',
+    emailRequired: 'Ingresá un correo destinatario válido',
+    productRequired: 'Seleccioná al menos un producto',
+    approve: 'Aprobar cotización',
+    approveTitle: 'Aprobar cotización',
+    selectProduct: 'Selecciona producto',
+    selectPlan: 'Selecciona plan',
+    payMethod: 'Selecciona forma de pago',
+    approveBtn: 'Aprobar cotización',
+    approving: 'Aprobando…',
+    planRequired: 'Seleccioná un plan',
+    errApprove: 'No se pudo aprobar la cotización',
   },
   en: {
     detail: 'Quote detail',
@@ -125,6 +151,27 @@ const labels = {
     error: 'We could not load the quote',
     retry: 'Retry',
     saved: 'PDF downloaded',
+    send: 'Send by email',
+    sendTitle: 'Send quote',
+    products: 'Select product',
+    to: 'To:',
+    cc: 'Cc:',
+    bcc: 'Bcc:',
+    sendBtn: 'Send email',
+    cancel: 'Cancel',
+    sending: 'Sending…',
+    errSend: 'Could not send the quote',
+    emailRequired: 'Enter a valid recipient email',
+    productRequired: 'Select at least one product',
+    approve: 'Approve quote',
+    approveTitle: 'Approve quote',
+    selectProduct: 'Select product',
+    selectPlan: 'Select plan',
+    payMethod: 'Select payment method',
+    approveBtn: 'Approve quote',
+    approving: 'Approving…',
+    planRequired: 'Select a plan',
+    errApprove: 'Could not approve the quote',
   },
   pt: {
     detail: 'Detalhe da cotação',
@@ -175,6 +222,27 @@ const labels = {
     error: 'Não foi possível carregar a cotação',
     retry: 'Tentar novamente',
     saved: 'PDF baixado',
+    send: 'Enviar por e-mail',
+    sendTitle: 'Enviar cotação',
+    products: 'Selecionar produto',
+    to: 'Para:',
+    cc: 'Com cópia para:',
+    bcc: 'Com cópia oculta para:',
+    sendBtn: 'Enviar e-mail',
+    cancel: 'Cancelar',
+    sending: 'Enviando…',
+    errSend: 'Não foi possível enviar a cotação',
+    emailRequired: 'Insira um e-mail destinatário válido',
+    productRequired: 'Selecione pelo menos um produto',
+    approve: 'Aprovar cotação',
+    approveTitle: 'Aprovar cotação',
+    selectProduct: 'Selecionar produto',
+    selectPlan: 'Selecionar plano',
+    payMethod: 'Selecionar forma de pagamento',
+    approveBtn: 'Aprovar cotação',
+    approving: 'Aprovando…',
+    planRequired: 'Selecione um plano',
+    errApprove: 'Não foi possível aprovar a cotação',
   },
 };
 
@@ -257,7 +325,7 @@ function PrimasTable({ primas, t }: { primas: PrimaConsulta[]; t: T }) {
 export default function CotizacionDetalleScreen() {
   const router = useRouter();
   const allowed = useRequirePermiso(OPCION.cotizaciones);
-  const { canSee } = usePermisos();
+  const { canSee, canExecute } = usePermisos();
   const { id } = useLocalSearchParams<{ id: string }>();
   const codigo = Number(id);
   const user = useAuthStore((s) => s.user);
@@ -274,6 +342,86 @@ export default function CotizacionDetalleScreen() {
   const [pdfUrl, setPdfUrl] = useState<string | null>(null);
   const [pdfState, setPdfState] = useState<'idle' | 'loading' | 'error'>('idle');
   const [snack, setSnack] = useState('');
+
+  // ---- Enviar por correo ----
+  const [enviarOpen, setEnviarOpen] = useState(false);
+  const [prodSel, setProdSel] = useState({ beyond: true, privilege: true, liberty: true, legacy: true });
+  const [toMail, setToMail] = useState('');
+  const [ccMail, setCcMail] = useState('');
+  const [bccMail, setBccMail] = useState('');
+  const [formError, setFormError] = useState('');
+
+  const openEnviar = () => {
+    setToMail((data?.Correo ?? '').trim());
+    setCcMail((user?.DireccionEmail ?? '').trim());
+    setFormError('');
+    setEnviarOpen(true);
+  };
+
+  const enviarMutation = useMutation({
+    mutationFn: enviarCotizacion,
+    onSuccess: (res) => {
+      setSnack(res.message);
+      if (res.success) setEnviarOpen(false);
+    },
+    onError: (e: any) => setSnack(e?.response?.data?.message || t.errSend),
+  });
+
+  const doEnviar = () => {
+    setFormError('');
+    if (!toMail.trim() || !/^\S+@\S+\.\S+$/.test(toMail.trim())) return setFormError(t.emailRequired);
+    if (!prodSel.beyond && !prodSel.privilege && !prodSel.liberty && !prodSel.legacy) return setFormError(t.productRequired);
+    enviarMutation.mutate({
+      codigoCotizacion: codigo,
+      ...prodSel,
+      productType: productoSel,
+      toMail: toMail.trim(),
+      ccMail: ccMail.trim() || undefined,
+      bccMail: bccMail.trim() || undefined,
+      language: lang,
+    });
+  };
+
+  // ---- Aprobar cotización → emitir solicitud ----
+  const [aprobOpen, setAprobOpen] = useState(false);
+  const [aprobPoliza, setAprobPoliza] = useState<number>(1);
+  const [aprobPlan, setAprobPlan] = useState<number | null>(null);
+  const [aprobForma, setAprobForma] = useState<number>(1);
+  const [aprobError, setAprobError] = useState('');
+
+  const planesQuery = useQuery({
+    queryKey: ['planes-poliza', aprobPoliza],
+    queryFn: () => getPlanesPorPoliza(aprobPoliza),
+    enabled: aprobOpen,
+    staleTime: 1000 * 60 * 30,
+  });
+  const planes = planesQuery.data ?? [];
+
+  const openAprobar = () => {
+    setAprobPoliza(productoSel ?? 1);
+    setAprobPlan(null);
+    setAprobForma(1);
+    setAprobError('');
+    setAprobOpen(true);
+  };
+
+  const aprobarMutation = useMutation({
+    mutationFn: aprobarCotizacion,
+    onSuccess: (res) => {
+      setAprobOpen(false);
+      setSnack(res.message);
+      if (res.codigoSolicitud) {
+        setTimeout(() => router.push(`/solicitudes/${res.codigoSolicitud}` as any), 800);
+      }
+    },
+    onError: (e: any) => setAprobError(e?.response?.data?.message || t.errApprove),
+  });
+
+  const doAprobar = () => {
+    if (!aprobPlan) return setAprobError(t.planRequired);
+    setAprobError('');
+    aprobarMutation.mutate({ codigoCotizacion: codigo, codigoPlan: aprobPlan, codigoFormaPago: aprobForma });
+  };
 
   const productos = useMemo(() => (data?.ListaPolizas ?? []).filter((p) => PRODUCT_SUFFIX[p.CodigoPoliza]), [data]);
   const productoSel = producto ?? productos[0]?.CodigoPoliza;
@@ -470,6 +618,28 @@ export default function CotizacionDetalleScreen() {
             <Text variant="bodyMedium" style={{ color: colors.onSurfaceVariant }}>{data.NombreSolicitante}</Text>
           )}
         </View>
+        {!!data && canExecute(OPCION.cotizaciones) && (
+          <Button
+            mode="contained-tonal"
+            icon="check-decagram-outline"
+            compact
+            onPress={openAprobar}
+            style={{ borderRadius: roundness - 4 }}
+          >
+            {t.approve}
+          </Button>
+        )}
+        {!!data && (
+          <Button
+            mode="outlined"
+            icon="email-send-outline"
+            compact
+            onPress={openEnviar}
+            style={{ borderRadius: roundness - 4 }}
+          >
+            {t.send}
+          </Button>
+        )}
         {!!data && <EstadoChip desc={data.DescripcionEstadoCotizacion} />}
       </View>
 
@@ -490,6 +660,126 @@ export default function CotizacionDetalleScreen() {
         </View>
       )}
 
+      {/* Enviar cotización por correo */}
+      <Portal>
+        <Dialog visible={enviarOpen} onDismiss={() => setEnviarOpen(false)} style={[styles.dialog, { borderRadius: roundness + 4, backgroundColor: colors.surface }]}>
+          <Dialog.Title>{t.sendTitle}</Dialog.Title>
+          <Dialog.Content style={{ gap: 10 }}>
+            <Text variant="labelMedium" style={{ color: colors.onSurfaceVariant }}>{t.products}</Text>
+            <View style={styles.prodChecks}>
+              {(['beyond', 'privilege', 'liberty', 'legacy'] as const).map((k) => (
+                <View key={k} style={styles.checkRow}>
+                  <Checkbox
+                    status={prodSel[k] ? 'checked' : 'unchecked'}
+                    onPress={() => setProdSel((p) => ({ ...p, [k]: !p[k] }))}
+                  />
+                  <Text variant="bodyMedium" style={{ textTransform: 'capitalize' }}>{k}</Text>
+                </View>
+              ))}
+            </View>
+            <TextInput
+              mode="outlined"
+              dense
+              label={t.to}
+              value={toMail}
+              onChangeText={setToMail}
+              autoCapitalize="none"
+              keyboardType="email-address"
+              outlineStyle={{ borderRadius: 10 }}
+            />
+            <TextInput
+              mode="outlined"
+              dense
+              label={t.cc}
+              value={ccMail}
+              onChangeText={setCcMail}
+              autoCapitalize="none"
+              keyboardType="email-address"
+              outlineStyle={{ borderRadius: 10 }}
+            />
+            <TextInput
+              mode="outlined"
+              dense
+              label={t.bcc}
+              value={bccMail}
+              onChangeText={setBccMail}
+              autoCapitalize="none"
+              keyboardType="email-address"
+              outlineStyle={{ borderRadius: 10 }}
+            />
+            {!!formError && <Text variant="bodySmall" style={{ color: colors.error }}>{formError}</Text>}
+          </Dialog.Content>
+          <Dialog.Actions>
+            <Button onPress={() => setEnviarOpen(false)}>{t.cancel}</Button>
+            <Button mode="contained" onPress={doEnviar} loading={enviarMutation.isPending} disabled={enviarMutation.isPending}>
+              {enviarMutation.isPending ? t.sending : t.sendBtn}
+            </Button>
+          </Dialog.Actions>
+        </Dialog>
+      </Portal>
+
+      {/* Aprobar cotización */}
+      <Portal>
+        <Dialog visible={aprobOpen} onDismiss={() => setAprobOpen(false)} style={[styles.dialog, { borderRadius: roundness + 4, backgroundColor: colors.surface }]}>
+          <Dialog.Title>{t.approveTitle}</Dialog.Title>
+          <Dialog.Content style={{ gap: 10 }}>
+            <Text variant="labelMedium" style={{ color: colors.onSurfaceVariant }}>{t.selectProduct}</Text>
+            <View style={styles.chipRow}>
+              {[1, 2, 3, 4].map((p) => (
+                <Chip
+                  key={p}
+                  selected={aprobPoliza === p}
+                  onPress={() => { setAprobPoliza(p); setAprobPlan(null); }}
+                  mode={aprobPoliza === p ? 'flat' : 'outlined'}
+                  compact
+                >
+                  {['Beyond', 'Privilege', 'Liberty', 'Legacy'][p - 1]}
+                </Chip>
+              ))}
+            </View>
+            <Text variant="labelMedium" style={{ color: colors.onSurfaceVariant }}>{t.selectPlan}</Text>
+            {planesQuery.isLoading ? (
+              <ActivityIndicator animating size="small" />
+            ) : (
+              <ScrollView style={{ maxHeight: 160 }}>
+                <View style={styles.chipRow}>
+                  {planes.map((pl) => (
+                    <Chip
+                      key={pl.Codigo}
+                      selected={aprobPlan === pl.Codigo}
+                      onPress={() => setAprobPlan(pl.Codigo)}
+                      mode={aprobPlan === pl.Codigo ? 'flat' : 'outlined'}
+                      compact
+                    >
+                      {pl.Descripcion.trim()}
+                    </Chip>
+                  ))}
+                  {planes.length === 0 && <Text variant="bodySmall" style={{ color: colors.onSurfaceVariant }}>—</Text>}
+                </View>
+              </ScrollView>
+            )}
+            <Text variant="labelMedium" style={{ color: colors.onSurfaceVariant }}>{t.payMethod}</Text>
+            <SegmentedButtons
+              value={String(aprobForma)}
+              onValueChange={(v) => setAprobForma(Number(v))}
+              density="small"
+              buttons={[
+                { value: '1', label: t.annual },
+                { value: '2', label: t.semiannual },
+                { value: '3', label: t.quarterly },
+              ]}
+            />
+            {!!aprobError && <Text variant="bodySmall" style={{ color: colors.error }}>{aprobError}</Text>}
+          </Dialog.Content>
+          <Dialog.Actions>
+            <Button onPress={() => setAprobOpen(false)}>{t.cancel}</Button>
+            <Button mode="contained" onPress={doAprobar} loading={aprobarMutation.isPending} disabled={aprobarMutation.isPending || !aprobPlan}>
+              {aprobarMutation.isPending ? t.approving : t.approveBtn}
+            </Button>
+          </Dialog.Actions>
+        </Dialog>
+      </Portal>
+
       <Snackbar visible={!!snack} onDismiss={() => setSnack('')} duration={2500} onIconPress={() => setSnack('')}>
         {snack}
       </Snackbar>
@@ -498,7 +788,10 @@ export default function CotizacionDetalleScreen() {
 }
 
 const styles = StyleSheet.create({
-  header: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  header: { flexDirection: 'row', alignItems: 'center', gap: 8, flexWrap: 'wrap' },
+  dialog: { maxWidth: 460, alignSelf: 'center', width: '92%' },
+  prodChecks: { flexDirection: 'row', flexWrap: 'wrap' },
+  checkRow: { flexDirection: 'row', alignItems: 'center', width: '50%' },
   centered: { alignItems: 'center', justifyContent: 'center', paddingVertical: 64 },
   grid: { gap: 14 },
   gridRow: { flexDirection: 'row', alignItems: 'flex-start' },

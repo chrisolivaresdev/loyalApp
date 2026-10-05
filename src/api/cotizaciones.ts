@@ -126,6 +126,15 @@ export const getCotizaciones = (codigoEstadoCotizacion?: string, page = 1, limit
       return { data, meta };
     });
 
+/** URL de exportación del listado de cotizaciones (respeta filtros). */
+export const reporteCotizacionesUrl = (formato: 'excel' | 'pdf', estado?: string, nombreCliente?: string) => {
+  const params = new URLSearchParams();
+  if (estado) params.set('codigoEstadoCotizacion', estado);
+  if (nombreCliente) params.set('nombreCliente', nombreCliente);
+  const qs = params.toString();
+  return `${api.defaults.baseURL}/cotizaciones/reporte/${formato}${qs ? `?${qs}` : ''}`;
+};
+
 export interface CotizacionEstadoResumen {
   codigoEstadoCotizacion: string;
   descripcionEstadoCotizacion: string;
@@ -215,3 +224,52 @@ export const solicitarCotizacion = (dto: SolicitarCotizacionRequest) =>
   api
     .post<SolicitarCotizacionResponse>('/cotizaciones/solicitar-cotizacion', dto)
     .then((r) => r.data);
+
+// ---------------- Enviar cotización por correo ----------------
+
+export interface EnviarCotizacionRequest {
+  codigoCotizacion: number;
+  beyond: boolean;
+  privilege: boolean;
+  liberty: boolean;
+  legacy: boolean;
+  productType?: number;
+  toMail: string;
+  ccMail?: string;
+  bccMail?: string;
+  language: string;
+}
+
+export interface EnviarCotizacionResponse {
+  success: boolean;
+  title: string;
+  message: string;
+  type: 'success' | 'warning' | 'error';
+  redirect?: string;
+}
+
+export const enviarCotizacion = (dto: EnviarCotizacionRequest) =>
+  api
+    .post<EnviarCotizacionResponse>('/cotizaciones/enviar-cotizacion', dto)
+    .then((r) => r.data);
+
+// ---------------- Aprobar cotización → emitir solicitud ----------------
+
+export interface PlanCombo {
+  Codigo: number;
+  Descripcion: string;
+}
+
+export const getPlanesPorPoliza = (codigoPoliza: number) =>
+  api.get<PlanCombo[]>('/cotizaciones/planes', { params: { codigoPoliza } }).then((r) => r.data);
+
+export interface AprobarCotizacionResponse {
+  success: boolean;
+  title: string;
+  message: string;
+  type: 'success' | 'warning' | 'error';
+  codigoSolicitud: number;
+}
+
+export const aprobarCotizacion = (dto: { codigoCotizacion: number; codigoPlan: number; codigoFormaPago: number }) =>
+  api.post<AprobarCotizacionResponse>('/cotizaciones/aprobar-cotizacion', dto).then((r) => r.data);

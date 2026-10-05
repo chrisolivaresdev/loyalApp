@@ -1,15 +1,19 @@
 import { OPCION } from '@/api/agent';
 import {
-    Asegurado,
-    CertificadoDetalle,
-    Cuota,
-    documentoDescargaUrl,
-    documentoGeneradoUrl,
-    enviarResumenSms,
-    registrarNota,
-    solicitarPagoLinea,
-    subirDocumento,
+  actualizarAsegurado,
+  Asegurado,
+  CertificadoDetalle,
+  Cuota,
+  documentoDescargaUrl,
+  documentoGeneradoUrl,
+  enviarResumenSms,
+  getAseguradoEdicion,
+  getTiposPersona,
+  registrarNota,
+  solicitarPagoLinea,
+  subirDocumento
 } from '@/api/certificados';
+import { getPaises } from '@/api/cotizaciones';
 import { AppShell, Lang } from '@/components/AppShell';
 import { SelectField } from '@/components/SelectField';
 import { useLogout } from '@/hooks/useAuth';
@@ -19,28 +23,29 @@ import { useResponsive } from '@/hooks/useResponsive';
 import { useAuthStore } from '@/stores/auth';
 import { useSettingsStore } from '@/stores/settings';
 import { palette } from '@/theme';
+import { useMutation, useQuery } from '@tanstack/react-query';
 import * as DocumentPicker from 'expo-document-picker';
 import * as FileSystem from 'expo-file-system/legacy';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import * as Sharing from 'expo-sharing';
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Linking, Platform, ScrollView, StyleSheet, View } from 'react-native';
 import {
-    ActivityIndicator,
-    Button,
-    Chip,
-    Dialog,
-    Divider,
-    Icon,
-    IconButton,
-    Portal,
-    Snackbar,
-    Switch,
-    Text,
-    TextInput,
-    Tooltip,
-    TouchableRipple,
-    useTheme
+  ActivityIndicator,
+  Button,
+  Chip,
+  Dialog,
+  Divider,
+  Icon,
+  IconButton,
+  Portal,
+  Snackbar,
+  Switch,
+  Text,
+  TextInput,
+  Tooltip,
+  TouchableRipple,
+  useTheme
 } from 'react-native-paper';
 
 const labels = {
@@ -67,6 +72,10 @@ const labels = {
     requestDate: 'Fecha Solicitud', approvalDate: 'Fecha Aprobación', endDate: 'Fin Vigencia',
     adminCost: 'Costo Administrativo', dependents: 'Dependientes', paymentInProcess: 'Pago En Proceso',
     cuota: 'Cuota', generateDocs: 'Generar documentos', emptyDocs: 'No hay documentos', emptyPayments: 'Sin pagos registrados',
+    editInsured: 'Editar asegurado', relation: 'Relación', firstName: 'Nombre', paternalLast: 'Apellido Paterno',
+    maternalLast: 'Apellido Materno', birthDate: 'Fecha Nacimiento', gender: 'Género', email: 'Correo',
+    phone: 'Teléfono Casa', mobile: 'Celular', mainAddress: 'Dirección Principal', postalAddress: 'Dirección Postal',
+    altAddress: 'Dirección Alternativa', country: 'País', saveChanges: 'Actualizar datos', okEdit: 'Asegurado actualizado',
   },
   en: {
     title: 'Policy Details', loading: 'Loading policy…', error: 'Could not load the policy', retry: 'Retry',
@@ -91,6 +100,10 @@ const labels = {
     requestDate: 'Request Date', approvalDate: 'Approval Date', endDate: 'End of Validity',
     adminCost: 'Administrative Cost', dependents: 'Dependents', paymentInProcess: 'Payment In Process',
     cuota: 'Installment', generateDocs: 'Generate documents', emptyDocs: 'No documents', emptyPayments: 'No payments recorded',
+    editInsured: 'Edit insured', relation: 'Relation', firstName: 'First name', paternalLast: 'Paternal last name',
+    maternalLast: 'Maternal last name', birthDate: 'Birth date', gender: 'Gender', email: 'Email',
+    phone: 'Home phone', mobile: 'Mobile', mainAddress: 'Main address', postalAddress: 'Postal address',
+    altAddress: 'Alternate address', country: 'Country', saveChanges: 'Update data', okEdit: 'Insured updated',
   },
   pt: {
     title: 'Consultar Apólice', loading: 'Carregando apólice…', error: 'Não foi possível carregar a apólice', retry: 'Tentar novamente',
@@ -115,6 +128,10 @@ const labels = {
     requestDate: 'Data Solicitação', approvalDate: 'Data Aprovação', endDate: 'Fim da Vigência',
     adminCost: 'Custo Administrativo', dependents: 'Dependentes', paymentInProcess: 'Pagamento Em Processo',
     cuota: 'Parcela', generateDocs: 'Gerar documentos', emptyDocs: 'Sem documentos', emptyPayments: 'Sem pagamentos registrados',
+    editInsured: 'Editar segurado', relation: 'Relação', firstName: 'Nome', paternalLast: 'Sobrenome paterno',
+    maternalLast: 'Sobrenome materno', birthDate: 'Data de nascimento', gender: 'Gênero', email: 'E-mail',
+    phone: 'Telefone residencial', mobile: 'Celular', mainAddress: 'Endereço principal', postalAddress: 'Endereço postal',
+    altAddress: 'Endereço alternativo', country: 'País', saveChanges: 'Atualizar dados', okEdit: 'Segurado atualizado',
   },
 };
 
@@ -229,6 +246,7 @@ export default function PolizaDetalleScreen() {
   const { isDesktop } = useResponsive();
   const t = labels[lang];
 
+  const [editPersona, setEditPersona] = useState<number | null>(null);
   const [notaOpen, setNotaOpen] = useState(false);
   const [nota, setNota] = useState('');
   const [notaSms, setNotaSms] = useState(false);
@@ -359,6 +377,9 @@ export default function PolizaDetalleScreen() {
           <View style={[styles.miniChip, { backgroundColor: estadoColor(a.DescripcionEstadoPersonaSolicitud) }]}>
             <Text variant="labelSmall" style={{ color: '#FFF' }}>{a.DescripcionEstadoPersonaSolicitud}</Text>
           </View>
+          {canExecute(OPCION.consultarPoliza) && (
+            <IconButton icon="pencil-outline" size={18} onPress={() => setEditPersona(a.CodigoPersona)} style={{ margin: 0 }} />
+          )}
         </View>
 
         <Divider style={{ marginVertical: 10 }} />
@@ -571,6 +592,16 @@ export default function PolizaDetalleScreen() {
 
       {renderBody()}
 
+      <EditarAseguradoDialog
+        visible={editPersona !== null}
+        codigoCertificado={codigoCertificado}
+        codigoPersona={editPersona ?? 0}
+        t={t}
+        onDismiss={() => setEditPersona(null)}
+        onSaved={() => { setEditPersona(null); refetch(); setSnack(t.okEdit); }}
+        onError={(m) => setSnack(m)}
+      />
+
       <Portal>
         {/* Diálogo: nota */}
         <Dialog visible={notaOpen} onDismiss={() => setNotaOpen(false)} style={styles.dialog}>
@@ -742,6 +773,114 @@ export default function PolizaDetalleScreen() {
   );
 }
 
+/** Edición de asegurado — equivale a Certificados/RegistroPersona del portal. */
+function EditarAseguradoDialog({ visible, codigoCertificado, codigoPersona, t, onDismiss, onSaved, onError }: {
+  visible: boolean; codigoCertificado: number; codigoPersona: number; t: T;
+  onDismiss: () => void; onSaved: () => void; onError: (m: string) => void;
+}) {
+  const { colors, roundness } = useTheme();
+  const [form, setForm] = useState<Record<string, string>>({});
+  const set = (k: string, v: string) => setForm((f) => ({ ...f, [k]: v }));
+
+  const aseguradoQ = useQuery({
+    queryKey: ['asegurado-ed', codigoCertificado, codigoPersona],
+    queryFn: () => getAseguradoEdicion(codigoCertificado, codigoPersona),
+    enabled: visible && codigoPersona > 0,
+  });
+  const tiposQ = useQuery({ queryKey: ['tipos-persona'], queryFn: getTiposPersona, enabled: visible, staleTime: 1000 * 60 * 30 });
+  const paisesQ = useQuery({ queryKey: ['paises'], queryFn: getPaises, enabled: visible, staleTime: 1000 * 60 * 30 });
+  const paises = paisesQ.data ?? [];
+  const opcPais = paises.map((p) => ({ value: String(p.CodigoPais), label: p.DescripcionPais.trim() }));
+
+  useEffect(() => {
+    const a = aseguradoQ.data;
+    if (!a) return;
+    setForm({
+      codigoTipoRelacion: String(a.CodigoTipoPersonaCertificado ?? '').trim(),
+      nombre: a.Nombre ?? '', apellidoPaterno: a.ApellidoPaterno ?? '', apellidoMaterno: a.ApellidoMaterno ?? '',
+      fechaNacimiento: a.FechaNacimiento ? String(a.FechaNacimiento).slice(0, 10) : '', sexo: a.Sexo ?? '',
+      correo: a.Correo ?? '', telefono: a.Telefono ?? '', celular: a.Celular ?? '',
+      direccionPrincipal: a.DireccionPrincipal ?? '', codigoPaisPrincipal: String(a.CodigoPaisPrincipal ?? ''),
+      direccionPostal: a.DireccionPostal ?? '', codigoPaisPostal: String(a.CodigoPaisPostal ?? ''),
+      direccionAlternativa: a.DireccionAlternativa ?? '', codigoPaisAlternativa: String(a.CodigoPaisAlternativa ?? ''),
+    });
+  }, [aseguradoQ.data]);
+
+  const saveMutation = useMutation({
+    mutationFn: () => actualizarAsegurado(codigoCertificado, codigoPersona, form),
+    onSuccess: onSaved,
+    onError: (e: any) => onError(e?.response?.data?.message || t.errGeneric),
+  });
+
+  const input = (k: string, label: string, opts: Record<string, unknown> = {}) => (
+    <TextInput
+      key={k} mode="outlined" dense label={label}
+      value={form[k] ?? ''} onChangeText={(v) => set(k, v)}
+      style={{ backgroundColor: colors.background }} {...opts}
+    />
+  );
+
+  const chipRow = (k: string, opciones: { v: string; l: string }[]) => (
+    <View style={styles.chipWrap}>
+      {opciones.map((o) => (
+        <Chip key={o.v} selected={form[k] === o.v} onPress={() => set(k, o.v)} mode={form[k] === o.v ? 'flat' : 'outlined'} compact>
+          {o.l}
+        </Chip>
+      ))}
+    </View>
+  );
+
+  return (
+    <Portal>
+      <Dialog visible={visible} onDismiss={onDismiss} style={styles.dialog}>
+        <Dialog.Title>
+          <View style={styles.dialogTitle}>
+            <View style={[styles.dialogIcon, { backgroundColor: palette.indigo[50] }]}>
+              <Icon source="account-edit-outline" size={20} color={palette.indigo[500]} />
+            </View>
+            <Text variant="titleMedium" style={{ flex: 1 }}>{t.editInsured}</Text>
+          </View>
+        </Dialog.Title>
+        {aseguradoQ.isLoading ? (
+          <Dialog.Content><ActivityIndicator animating /></Dialog.Content>
+        ) : (
+          <>
+            <Dialog.ScrollArea style={{ maxHeight: 460 }}>
+              <ScrollView>
+                <View style={{ padding: 12, gap: 10 }}>
+                  <Text variant="labelMedium" style={{ color: colors.onSurfaceVariant }}>{t.relation}</Text>
+                  {chipRow('codigoTipoRelacion', (tiposQ.data ?? []).map((x) => ({ v: String(x.CodigoTipoPersonaCotizacion).trim(), l: x.DescripcionTipoPersonaCotizacion.trim() })))}
+                  {input('nombre', t.firstName)}
+                  {input('apellidoPaterno', t.paternalLast)}
+                  {input('apellidoMaterno', t.maternalLast)}
+                  {input('fechaNacimiento', `${t.birthDate} (YYYY-MM-DD)`, { placeholder: '1990-01-31' })}
+                  <Text variant="labelMedium" style={{ color: colors.onSurfaceVariant }}>{t.gender}</Text>
+                  {chipRow('sexo', [{ v: 'M', l: t.male }, { v: 'F', l: t.female }])}
+                  {input('correo', t.email, { keyboardType: 'email-address', autoCapitalize: 'none' })}
+                  {input('celular', t.mobile, { keyboardType: 'phone-pad' })}
+                  {input('telefono', t.phone, { keyboardType: 'phone-pad' })}
+                  {input('direccionPrincipal', t.mainAddress, { multiline: true })}
+                  <SelectField label={t.country} value={form.codigoPaisPrincipal} options={opcPais} onChange={(v) => set('codigoPaisPrincipal', v)} placeholder={t.country} />
+                  {input('direccionPostal', t.postalAddress, { multiline: true })}
+                  <SelectField label={t.country} value={form.codigoPaisPostal} options={opcPais} onChange={(v) => set('codigoPaisPostal', v)} placeholder={t.country} />
+                  {input('direccionAlternativa', t.altAddress, { multiline: true })}
+                  <SelectField label={t.country} value={form.codigoPaisAlternativa} options={opcPais} onChange={(v) => set('codigoPaisAlternativa', v)} placeholder={t.country} />
+                </View>
+              </ScrollView>
+            </Dialog.ScrollArea>
+            <Dialog.Actions>
+              <Button onPress={onDismiss}>{t.cancel}</Button>
+              <Button mode="contained" icon="content-save-outline" onPress={() => saveMutation.mutate()} loading={saveMutation.isPending} disabled={saveMutation.isPending}>
+                {t.saveChanges}
+              </Button>
+            </Dialog.Actions>
+          </>
+        )}
+      </Dialog>
+    </Portal>
+  );
+}
+
 const styles = StyleSheet.create({
   headerRow: { flexDirection: 'row', alignItems: 'center', gap: 4 },
   centered: { alignItems: 'center', justifyContent: 'center', paddingVertical: 64, gap: 4 },
@@ -772,4 +911,5 @@ const styles = StyleSheet.create({
   dropzone: { borderWidth: 1.5, borderStyle: 'dashed' as const, alignItems: 'center', justifyContent: 'center', paddingVertical: 24, gap: 4 },
   docGroupHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: 10, paddingVertical: 5, borderRadius: 6, marginBottom: 4 },
   docRow: { flexDirection: 'row', alignItems: 'center', gap: 8, paddingVertical: 8, paddingHorizontal: 6 },
+  chipWrap: { flexDirection: 'row', flexWrap: 'wrap', gap: 6 },
 });

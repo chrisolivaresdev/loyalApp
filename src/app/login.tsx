@@ -3,8 +3,9 @@ import { useResponsive } from '@/hooks/useResponsive';
 import { useSettingsStore } from '@/stores/settings';
 import { palette } from '@/theme';
 import { LinearGradient } from 'expo-linear-gradient';
+import { useRouter } from 'expo-router';
 import { useState } from 'react';
-import { KeyboardAvoidingView, Platform, ScrollView, StyleSheet, View } from 'react-native';
+import { Image, KeyboardAvoidingView, Platform, ScrollView, StyleSheet, View } from 'react-native';
 import { Button, HelperText, Icon, Text, TextInput, TouchableRipple, useTheme } from 'react-native-paper';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
@@ -23,6 +24,7 @@ const labels: Record<Lang, { [key: string]: string }> = {
     highlights: 'Seguimiento de producción y comisiones en tiempo real;Cotizaciones, solicitudes y pólizas en un solo lugar;Acceso seguro desde web y dispositivos móviles',
     company: 'Loyal Insurance Group',
     secure: 'Conexión segura · Tus datos están protegidos',
+    forgot: '¿Olvidaste tu contraseña?',
   },
   en: {
     brand: 'Agent Portal',
@@ -36,6 +38,7 @@ const labels: Record<Lang, { [key: string]: string }> = {
     highlights: 'Real-time production and commission tracking;Quotes, applications and policies in one place;Secure access from web and mobile devices',
     company: 'Loyal Insurance Group',
     secure: 'Secure connection · Your data is protected',
+    forgot: 'Forgot your password?',
   },
   pt: {
     brand: 'Portal do Agente',
@@ -49,6 +52,7 @@ const labels: Record<Lang, { [key: string]: string }> = {
     highlights: 'Acompanhamento de produção e comissões em tempo real;Cotações, solicitações e apólices em um só lugar;Acesso seguro pela web e dispositivos móveis',
     company: 'Loyal Insurance Group',
     secure: 'Conexão segura · Seus dados estão protegidos',
+    forgot: 'Esqueceu sua senha?',
   },
 };
 
@@ -68,10 +72,11 @@ function BrandPanel({ lang }: { lang: Lang }) {
       style={styles.brandPanel}
     >
       <View style={styles.brandTop}>
-        <View style={styles.logo}>
-          <Icon source="shield-check" size={28} color={palette.navy[900]} />
-        </View>
-        <Text variant="titleLarge" style={{ color: '#FFFFFF' }}>Loyal</Text>
+        <Image
+          source={require('../../assets/images/logo-loyal-blanco.png')}
+          style={{ height: 52, width: 180 }}
+          resizeMode="contain"
+        />
       </View>
       <View style={{ gap: 12 }}>
         <Text variant="displaySmall" style={{ color: '#FFFFFF' }}>
@@ -111,6 +116,7 @@ export default function LoginScreen() {
   const setLang = useSettingsStore((s) => s.setLang);
   const t = labels[lang];
   const login = useLogin();
+  const router = useRouter();
 
   const onSubmit = () => {
     if (username && password) login.mutate({ username, password });
@@ -202,6 +208,16 @@ export default function LoginScreen() {
         >
           {t.submit}
         </Button>
+
+        <TouchableRipple
+          onPress={() => router.push('/recuperar' as any)}
+          borderless
+          style={{ borderRadius: 8, alignSelf: 'center' }}
+        >
+          <Text variant="labelLarge" style={{ color: colors.primary, padding: 6 }}>
+            {t.forgot}
+          </Text>
+        </TouchableRipple>
 
         <View style={styles.secure}>
           <Icon source="lock-check-outline" size={14} color={colors.onSurfaceVariant} />

@@ -142,6 +142,45 @@ export const subirDocumento = async (codigoCertificado: number, codigoTipoDocume
   return data;
 };
 
+// ---------------- Editar asegurado (RegistroPersona del portal) ----------------
+
+export interface TipoPersonaCertificado {
+  CodigoTipoPersonaCotizacion: string;
+  DescripcionTipoPersonaCotizacion: string;
+}
+
+export interface AseguradoEdicion extends Record<string, unknown> {
+  CodigoPersona: number;
+  CodigoCertificado: number;
+  Nombre: string;
+  ApellidoPaterno: string;
+  ApellidoMaterno: string;
+  FechaNacimiento: string;
+  Sexo: string;
+  CodigoTipoPersonaCertificado: string;
+  Correo: string;
+  Telefono: string;
+  Celular: string;
+  DireccionPrincipal: string;
+  CodigoPaisPrincipal: number;
+  DireccionPostal: string;
+  CodigoPaisPostal: number;
+  DireccionAlternativa: string;
+  CodigoPaisAlternativa: number;
+}
+
+export const getTiposPersona = () =>
+  api.get<TipoPersonaCertificado[]>('/certificados/tipos-persona').then((r) => r.data);
+
+export const getAseguradoEdicion = (codigoCertificado: number, codigoPersona: number) =>
+  api.get<AseguradoEdicion>(`/certificados/${codigoCertificado}/asegurados/${codigoPersona}`).then((r) => r.data);
+
+export const actualizarAsegurado = (
+  codigoCertificado: number,
+  codigoPersona: number,
+  dto: Record<string, unknown>,
+) => api.put(`/certificados/${codigoCertificado}/asegurados/${codigoPersona}`, dto).then((r) => r.data);
+
 /** URL para generar coverage/cards/policy/recibo (GET — el navegador/sistema la abre). */
 export const documentoGeneradoUrl = (codigoCertificado: number, tipo: 'coverage' | 'cards' | 'policy' | 'recibo', cuota: number) =>
   `${api.defaults.baseURL}/certificados/${codigoCertificado}/documento?tipo=${tipo}&cuota=${cuota}`;

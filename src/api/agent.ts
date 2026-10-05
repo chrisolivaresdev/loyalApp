@@ -5,6 +5,8 @@ export interface GetDashboardParams {
   fechaFin: string;
   fechaInicioComparado: string;
   fechaFinComparado: string;
+  /** '1' = agrega toda la estructura de agentes (como el portal) */
+  estructura?: string;
 }
 
 export interface DashboardResponse {
@@ -273,3 +275,28 @@ export const OPCION = {
 
 export const getMisPermisos = () =>
   api.get<PermisoUsuario[]>('/agentes/permisos').then((r) => r.data);
+
+// ---------------- Campaña Express + Constancia ----------------
+
+export interface PolizaCampanaExpress {
+  AgenteCodigo: number;
+  NumeroPoliza: string;
+  FechaInicioVigencia: string;
+  Prima: number;
+}
+
+export const getCampanaExpress = () =>
+  api.get<PolizaCampanaExpress[]>('/agentes/campana-express').then((r) => r.data);
+
+/** URL de descarga de la constancia del agente (PDF rellenado). */
+export const constanciaUrl = () => `${api.defaults.baseURL}/agentes/constancia`;
+
+// ---------------- Foto de perfil (Usuario.UsuarioImagen) ----------------
+
+/** Devuelve la foto de perfil como data URL base64, o null si no hay. */
+export const getImagenPerfil = () =>
+  api.get<{ imagen: string | null }>('/agentes/perfil/imagen').then((r) => r.data);
+
+/** Sube la foto de perfil (data URL base64, image/*, máx. 2 MB). */
+export const actualizarImagenPerfil = (imagen: string) =>
+  api.put<{ ok: boolean }>('/agentes/perfil/imagen', { imagen }).then((r) => r.data);

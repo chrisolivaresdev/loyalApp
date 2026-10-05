@@ -22,14 +22,15 @@ import { useRouter } from 'expo-router';
 import { useState } from 'react';
 import { StyleSheet, View } from 'react-native';
 import {
-  ActivityIndicator,
-  Avatar,
-  Button,
-  Dialog,
-  Icon,
-  Portal,
-  Text,
-  useTheme,
+    ActivityIndicator,
+    Avatar,
+    Button,
+    Dialog,
+    Icon,
+    Portal,
+    Switch,
+    Text,
+    useTheme
 } from 'react-native-paper';
 
 const labels: Record<Lang, { [key: string]: string }> = {
@@ -85,11 +86,15 @@ const labels: Record<Lang, { [key: string]: string }> = {
     phone: 'Teléfono',
     activeAgent: 'Agente activo',
     noData: 'Sin datos',
+    structure: 'Mostrar información de toda la estructura de agentes',
+    structureOn: 'Datos de toda la estructura',
+    structureOff: 'Datos propios del agente',
   },
   en: {
     dashboard: 'Dashboard',
     home: 'Home',
     greeting: 'Welcome back',
+
     period: 'Current period',
     metrics: 'Key indicators',
     policies: 'Active policies',
@@ -138,6 +143,9 @@ const labels: Record<Lang, { [key: string]: string }> = {
     phone: 'Phone',
     activeAgent: 'Active agent',
     noData: 'No data',
+    structure: 'Show info for the whole agent structure',
+    structureOn: 'Whole structure data',
+    structureOff: 'Agent own data',
   },
   pt: {
     dashboard: 'Painel principal',
@@ -191,6 +199,9 @@ const labels: Record<Lang, { [key: string]: string }> = {
     phone: 'Telefone',
     activeAgent: 'Agente ativo',
     noData: 'Sem dados',
+    structure: 'Mostrar informações de toda a estrutura de agentes',
+    structureOn: 'Dados de toda a estrutura',
+    structureOff: 'Dados do próprio agente',
   },
 };
 
@@ -261,7 +272,8 @@ function ProfileRow({ icon, label, value }: { icon: string; label: string; value
 
 export default function DashboardScreen() {
   const user = useAuthStore((s) => s.user);
-  const { data, isLoading, isError, refetch, isRefetching } = useDashboard();
+  const [estructura, setEstructura] = useState(false);
+  const { data, isLoading, isError, refetch, isRefetching } = useDashboard(estructura);
   const { productos, ventas, paises } = useCharts();
   const { canSee, canExecute } = usePermisos();
   const { data: solicitudesResumen } = useSolicitudes('99', 1, 1, canSee(OPCION.solicitudes));
@@ -332,6 +344,16 @@ export default function DashboardScreen() {
         {data && (
           <>
             <AgentCard data={data} t={t} />
+
+            <View style={[styles.structureToggle, { backgroundColor: colors.surface, borderColor: colors.outlineVariant, borderRadius: roundness }]}>
+              <View style={{ flex: 1 }}>
+                <Text variant="bodyMedium" style={{ fontFamily: 'Inter_600SemiBold' }}>{t.structure}</Text>
+                <Text variant="labelSmall" style={{ color: colors.onSurfaceVariant }}>
+                  {estructura ? t.structureOn : t.structureOff}
+                </Text>
+              </View>
+              <Switch value={estructura} onValueChange={setEstructura} />
+            </View>
 
             <View>
               <SectionTitle title={t.metrics} subtitle={`${t.period} ${year}`} />
@@ -507,6 +529,7 @@ export default function DashboardScreen() {
 const styles = StyleSheet.create({
   hero: { flexDirection: 'row', alignItems: 'flex-end', justifyContent: 'space-between', gap: 16, flexWrap: 'wrap' },
   periodChip: { flexDirection: 'row', alignItems: 'center', gap: 8, paddingHorizontal: 14, paddingVertical: 10, borderWidth: 1 },
+  structureToggle: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingHorizontal: 16, paddingVertical: 10, borderWidth: 1 },
   sectionTitle: { marginBottom: 12, gap: 2 },
   grid: { flexDirection: 'row', flexWrap: 'wrap', gap: 14 },
   stateCard: { padding: 32, alignItems: 'center', gap: 12, borderWidth: 1 },

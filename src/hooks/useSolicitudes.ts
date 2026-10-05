@@ -1,4 +1,4 @@
-import { getSolicitudes, ListadoSolicitudesResponse } from '@/api/solicitudes';
+import { DetalleSolicitudResponse, getSolicitudDetalle, getSolicitudes, ListadoSolicitudesResponse } from '@/api/solicitudes';
 import { useAuthStore } from '@/stores/auth';
 import { keepPreviousData, useQuery } from '@tanstack/react-query';
 
@@ -15,5 +15,14 @@ export function useSolicitudes(codigoEstado: string, page = 1, limit = 25, permi
     enabled: !!user && codigoAgente > 0 && permisosOk,
     staleTime: 1000 * 60 * 2,
     placeholderData: keepPreviousData,
+  });
+}
+
+export function useSolicitudDetalle(codigoSolicitud: number | null, permisosOk = true) {
+  return useQuery<DetalleSolicitudResponse>({
+    queryKey: ['solicitud-detalle', codigoSolicitud],
+    queryFn: () => getSolicitudDetalle(codigoSolicitud!),
+    enabled: !!codigoSolicitud && codigoSolicitud > 0 && permisosOk,
+    staleTime: 1000 * 60,
   });
 }

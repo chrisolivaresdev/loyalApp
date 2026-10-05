@@ -1,5 +1,5 @@
 import { OPCION } from '@/api/agent';
-import { Cotizacion } from '@/api/cotizaciones';
+import { Cotizacion, reporteCotizacionesUrl } from '@/api/cotizaciones';
 import { AppShell, Lang } from '@/components/AppShell';
 import { Paginator } from '@/components/Paginator';
 import { useLogout } from '@/hooks/useAuth';
@@ -9,9 +9,11 @@ import { useResponsive } from '@/hooks/useResponsive';
 import { useAuthStore } from '@/stores/auth';
 import { useSettingsStore } from '@/stores/settings';
 import { palette } from '@/theme';
+import * as FileSystem from 'expo-file-system/legacy';
 import { useLocalSearchParams, useRouter } from 'expo-router';
+import * as Sharing from 'expo-sharing';
 import { useEffect, useMemo, useState } from 'react';
-import { ScrollView, StyleSheet, View } from 'react-native';
+import { Platform, ScrollView, StyleSheet, View } from 'react-native';
 import {
   ActivityIndicator,
   Button,
@@ -38,6 +40,9 @@ const labels: Record<Lang, { [key: string]: string }> = {
     search: 'Buscar por nombre, código o correo',
     loading: 'Cargando cotizaciones…',
     empty: 'No hay cotizaciones para mostrar',
+    exportExcel: 'Excel',
+    exportPdf: 'PDF',
+    exporting: 'Exportando…',
     emptyHint: 'Registrá una nueva cotización para comenzar.',
     error: 'No pudimos cargar las cotizaciones',
     retry: 'Reintentar',
@@ -86,6 +91,9 @@ const labels: Record<Lang, { [key: string]: string }> = {
     search: 'Search by name, code or email',
     loading: 'Loading quotes…',
     empty: 'No quotes to show',
+    exportExcel: 'Excel',
+    exportPdf: 'PDF',
+    exporting: 'Exporting…',
     emptyHint: 'Create a new quote to get started.',
     error: "We couldn't load the quotes",
     retry: 'Retry',
@@ -134,6 +142,9 @@ const labels: Record<Lang, { [key: string]: string }> = {
     search: 'Buscar por nome, código ou e-mail',
     loading: 'Carregando cotações…',
     empty: 'Não há cotações para mostrar',
+    exportExcel: 'Excel',
+    exportPdf: 'PDF',
+    exporting: 'Exportando…',
     emptyHint: 'Registre uma nova cotação para começar.',
     error: 'Não foi possível carregar as cotações',
     retry: 'Tentar novamente',
@@ -348,6 +359,23 @@ export default function CotizacionesScreen() {
   }, [todas, lang]);
 
   const changeEstado = (value?: string) => { setEstado(value); setPage(1); };
+
+  const [exporting, setExporting] = useState('');
+  const exportar = async (formato: 'excel' | 'pdf') => {
+    const url = reporteCotizacionesUrl(formato, estado, debouncedQuery || undefined);
+    const nombre = `cotizaciones.${formato === 'excel' ? 'xlsx' : 'pdf'}`;
+    try {
+      setExporting(formato);
+      if (Platform.OS === 'web') {
+        window.open(url, '_blank');
+      } else {
+        const { uri } = await FileSystem.downloadAsync(url, `${FileSystem.cacheDirectory}${nombre}`);
+        if (await Sharing.isAvailableAsync()) await Sharing.shareAsync(uri, { dialogTitle: nombre });
+      }
+    } finally {
+      setExporting('');
+    }
+  };
   const changeLimit = (value: number) => { setLimit(value); setPage(1); };
   const goPage = (p: number) => setPage(Math.min(Math.max(1, p), totalPages));
 
@@ -377,11 +405,19 @@ export default function CotizacionesScreen() {
             <Text variant="headlineSmall">{t.quotes}</Text>
             <Text variant="bodyMedium" style={{ color: colors.onSurfaceVariant }}>{t.subtitle}</Text>
           </View>
-          {isDesktop && canCreate && (
-            <Button mode="contained" icon="plus" onPress={goNew} style={{ borderRadius: roundness - 4 }}>
-              {t.newQuote}
+          <View style={{ flexDirection: 'row', gap: 6, flexWrap: 'wrap' }}>
+            <Button mode="outlined" icon="file-excel-outline" compact onPress={() => exportar('excel')} loading={exporting === 'excel'} disabled={!!exporting} style={{ borderRadius: roundness - 4 }}>
+              {exporting === 'excel' ? t.exporting : t.exportExcel}
             </Button>
-          )}
+            <Button mode="outlined" icon="file-pdf-box" compact onPress={() => exportar('pdf')} loading={exporting === 'pdf'} disabled={!!exporting} style={{ borderRadius: roundness - 4 }}>
+              {exporting === 'pdf' ? t.exporting : t.exportPdf}
+            </Button>
+            {isDesktop && canCreate && (
+              <Button mode="contained" icon="plus" onPress={goNew} style={{ borderRadius: roundness - 4 }}>
+                {t.newQuote}
+              </Button>
+            )}
+          </View>
         </View>
 
         <View style={styles.statsRow}>

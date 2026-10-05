@@ -1,4 +1,4 @@
-import { OPCION } from '@/api/agent';
+import { actualizarImagenPerfil, getImagenPerfil, OPCION } from '@/api/agent';
 import { AppShell, Lang } from '@/components/AppShell';
 import { SelectField } from '@/components/SelectField';
 import { useLogout } from '@/hooks/useAuth';
@@ -7,6 +7,9 @@ import { useResponsive } from '@/hooks/useResponsive';
 import { useAuthStore } from '@/stores/auth';
 import { useSettingsStore } from '@/stores/settings';
 import { palette } from '@/theme';
+import { useMutation, useQuery } from '@tanstack/react-query';
+import * as DocumentPicker from 'expo-document-picker';
+import * as FileSystem from 'expo-file-system/legacy';
 import { useRouter } from 'expo-router';
 import { useEffect, useMemo, useState } from 'react';
 import { Image, KeyboardAvoidingView, Platform, ScrollView, StyleSheet, View } from 'react-native';
@@ -23,7 +26,7 @@ const labels: Record<Lang, { [key: string]: string }> = {
     email: 'Correo electrónico',
     phone: 'Teléfono',
     country: 'País',
-    image: 'URL de imagen',
+    image: 'JPG, PNG o WebP — máx. 2 MB',
     changeImage: 'Cambiar imagen',
     save: 'Guardar cambios',
     saved: 'Perfil actualizado',
@@ -41,7 +44,7 @@ const labels: Record<Lang, { [key: string]: string }> = {
     email: 'Email',
     phone: 'Phone',
     country: 'Country',
-    image: 'Image URL',
+    image: 'JPG, PNG or WebP — max. 2 MB',
     changeImage: 'Change image',
     save: 'Save changes',
     saved: 'Profile updated',
@@ -59,7 +62,7 @@ const labels: Record<Lang, { [key: string]: string }> = {
     email: 'E-mail',
     phone: 'Telefone',
     country: 'País',
-    image: 'URL da imagem',
+    image: 'JPG, PNG ou WebP — máx. 2 MB',
     changeImage: 'Alterar imagem',
     save: 'Salvar alterações',
     saved: 'Perfil atualizado',
@@ -145,6 +148,7 @@ export default function PerfilScreen() {
   const [country, setCountry] = useState('');
   const [imageUrl, setImageUrl] = useState(user?.UsuarioImagen ?? '');
   const [snack, setSnack] = useState(false);
+  const [imgError, setImgError] = useState('');
 
   useEffect(() => {
     if (user) {
@@ -153,12 +157,51 @@ export default function PerfilScreen() {
     }
   }, [user]);
 
+  // Carga la foto almacenada en la BD si aún no está en el perfil
+  useQuery({
+    queryKey: ['imagen-perfil'],
+    enabled: !imageUrl,
+    queryFn: () =>
+      getImagenPerfil().then((r) => {
+        if (r.imagen) setImageUrl(r.imagen);
+        return r.imagen;
+      }),
+  });
+
+  const uploadImg = useMutation({
+    mutationFn: actualizarImagenPerfil,
+    onSuccess: (_r, dataUri) => {
+      setImageUrl(dataUri);
+      if (user) setUser({ ...user, UsuarioImagen: dataUri });
+      setSnack(true);
+    },
+    onError: (e: any) => setImgError(e?.response?.data?.message || 'Error'),
+  });
+
+  const pickImage = async () => {
+    try {
+      const res = await DocumentPicker.getDocumentAsync({
+        type: 'image/*',
+        copyToCacheDirectory: true,
+        base64: true,
+      });
+      const asset = res.assets?.[0];
+      if (res.canceled || !asset) return;
+      let b64 = asset.base64;
+      if (!b64) {
+        b64 = await FileSystem.readAsStringAsync(asset.uri, { encoding: 'base64' });
+      }
+      uploadImg.mutate(`data:${asset.mimeType || 'image/jpeg'};base64,${b64}`);
+    } catch {
+      setImgError('Error');
+    }
+  };
+
   const onSave = () => {
     if (!user) return;
     setUser({
       ...user,
       DireccionEmail: email,
-      UsuarioImagen: imageUrl,
     });
     setSnack(true);
   };
@@ -166,7 +209,7 @@ export default function PerfilScreen() {
   const isValidEmail = email.includes('@') && email.includes('.');
 
   const avatar = useMemo(() => {
-    if (imageUrl.trim().startsWith('http')) {
+    if (imageUrl.trim().startsWith('http') || imageUrl.trim().startsWith('data:')) {
       return <Image source={{ uri: imageUrl }} style={[styles.image, { borderRadius: roundness }]} />;
     }
     return (
@@ -218,24 +261,19 @@ export default function PerfilScreen() {
             <Button
               mode="contained"
               icon="camera"
-              onPress={() => {}}
+              onPress={pickImage}
               style={{ marginTop: 16, borderRadius: roundness - 4 }}
-              disabled
+              loading={uploadImg.isPending}
+              disabled={uploadImg.isPending}
             >
               {t.changeImage}
             </Button>
             <Text variant="bodySmall" style={{ color: colors.onSurfaceVariant, marginTop: 8 }}>
               {t.image}
             </Text>
-            <TextInput
-              mode="outlined"
-              value={imageUrl}
-              onChangeText={setImageUrl}
-              placeholder="https://..."
-              style={{ width: '100%', maxWidth: 360, marginTop: 8 }}
-              autoCapitalize="none"
-              outlineStyle={{ borderRadius: roundness - 4 }}
-            />
+            {!!imgError && (
+              <HelperText type="error" visible>{imgError}</HelperText>
+            )}
           </View>
 
           <Card style={[styles.card, { borderRadius: roundness, backgroundColor: colors.surface }]}>
