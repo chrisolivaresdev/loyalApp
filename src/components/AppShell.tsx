@@ -432,6 +432,7 @@ function MobileNavMenu({
   const user = useAuthStore((s) => s.user);
   const router = useRouter();
   const pathname = usePathname();
+  const { colors } = useTheme();
   const { canSee, canExecute } = usePermisos();
   const codigoAgente = user?.CodigoAgente || user?.CodigoPersonalInterno || 0;
   const showCartera = codigoAgente > 0 && canExecute(OPCION.perfil) && pathname !== `/agentes/${codigoAgente}`;
@@ -447,7 +448,7 @@ function MobileNavMenu({
           accessibilityLabel={labels.menu ?? MENU_LABEL[lang]}
         />
       }
-      contentStyle={{ backgroundColor: 'white' }}
+      contentStyle={{ backgroundColor: colors.surface }}
       anchorPosition="bottom"
     >
       <Menu.Item leadingIcon="view-dashboard-outline" onPress={() => { onHome(); setOpen(false); }} title={labels.home} />

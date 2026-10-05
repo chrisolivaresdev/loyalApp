@@ -44,7 +44,7 @@ Estado: **paridad funcional con el portal legado ASP.NET**. Backend: `loyal-be` 
 | `GET /certificados/:id` · `tipos-documento` · `tipos-persona` | Detalle póliza |
 | `GET/PUT /certificados/:id/asegurados/:p` | Ver/editar asegurado (ejec) |
 | `POST /certificados/:id/notas` · `sms` · `pago-linea` · `documentos` | Acciones póliza (ejec) |
-| `GET /certificados/:id/documento` | coverage/cards/policy/recibo (upstream) |
+| `GET /certificados/:id/documento` | coverage/cards/policy/recibo — **generados en Nest** (port 1:1 de `QuestPDFManager` del API .NET: mismos SPs `SP_MO_ConsultaCertificadoPoliza`/`ConsultarAseguradosPorCertificados`/`ConsultarCronogramaPagosRecibosVarios`, mismos textos, colores, fondos y firma) |
 | `GET /documentos/descargar/:id` | Descarga docs |
 | `GET /recursos` · `recursos/archivo` | Recursos |
 | `GET /imagenes/campanas` · `imagenes/archivo` | Galería |
@@ -71,11 +71,23 @@ Estado: **paridad funcional con el portal legado ASP.NET**. Backend: `loyal-be` 
 1. **Descargas protegidas en nativo** — `downloadAsync` puede no enviar la cookie JWT (pendiente validar en dispositivo/emulador real).
 2. **`POST /cotizaciones/aprobar-cotizacion`** — endpoint verificado, pero no se disparó end-to-end (crea solicitud real).
 3. **`PUT asegurado`** — validado en ruta/permiso; no se ejecutó con datos reales (escribe en BD).
-4. **SMS (Twilio)** — código listo, falta configurar credenciales en ambiente.
-5. **PDFs upstream** — requieren `LOYAL_UPSTREAM_TOKEN` válido.
+4. **SMS (Twilio)** — ✅ credenciales configuradas (mismas del portal); falta probar envío real.
+5. **PDFs de póliza** — ✅ ya **no dependen de `api.app-loyalig.com`**: los 4 (coverage, tarjetas, policy, recibo) se generan en Nest con puppeteer. Verificados visualmente con póliza real. Recibo con varios pagos devuelve ZIP (igual que .NET).
 6. **Envío real de correo** — SES configurado vía env; envío real no verificado contra destinatario válido.
-7. **`APP_WEB_URL`** — setear URL pública para links de recuperación en producción.
+7. **`APP_WEB_URL` + `S3_DOCUMENTOS_URL`** — faltan en .env (links de recuperación de clave y folletos adjuntos a cotizaciones).
 
-## 6. Comportamiento por permisos
+## 6. Dependencias externas (todas propias de Loyal o infra)
+
+| Servicio | Uso |
+|---|---|
+| SQL Server (3 BDs) | Toda la data — mismos SPs/vistas del portal |
+| AWS SES | Correos (cotización, recuperación, correo general) |
+| AWS S3 `recursos-generales-documentos` | Folletos/comparativo/planilla adjuntos + imágenes del PDF de cotización |
+| Twilio | SMS desde detalle de póliza |
+| `pagolinea.app-loyalig.com` | Solo URL de redirect al checkout (no es llamada API) |
+
+**Ya no se consume `api.app-loyalig.com` para nada.** Los assets de los PDFs (fondos, carnets, header, footer, firma) están copiados en `loyal-be/assets/certificados/`.
+
+## 7. Comportamiento por permisos
 
 - `ver`/`ejec` filtran menú, pantallas (redirect si no hay ver), botones (notas/pago/upload/SMS/aprobar/editar asegurado) y endpoints (401/403 backend).

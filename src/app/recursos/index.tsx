@@ -8,9 +8,8 @@ import { useResponsive } from '@/hooks/useResponsive';
 import { useAuthStore } from '@/stores/auth';
 import { useSettingsStore } from '@/stores/settings';
 import { palette } from '@/theme';
-import * as FileSystem from 'expo-file-system/legacy';
+import { descargarArchivoAutenticado } from '@/utils/downloadFile';
 import { useRouter } from 'expo-router';
-import * as Sharing from 'expo-sharing';
 import { useState } from 'react';
 import { Linking, Platform, StyleSheet, View } from 'react-native';
 import {
@@ -94,12 +93,10 @@ export default function RecursosScreen() {
         await Linking.openURL(url);
       } else {
         const fileName = doc.archivo!.split('/').pop() ?? 'documento';
-        const dest = `${FileSystem.cacheDirectory}${fileName}`;
-        const { uri } = await FileSystem.downloadAsync(url, dest);
-        if (await Sharing.isAvailableAsync()) {
-          await Sharing.shareAsync(uri, { dialogTitle: doc.nombre });
-        } else {
-          await Linking.openURL(uri);
+        try {
+          await descargarArchivoAutenticado(url, fileName);
+        } catch {
+          await Linking.openURL(url);
         }
       }
     } catch {
@@ -118,9 +115,7 @@ export default function RecursosScreen() {
       if (Platform.OS === 'web') {
         window.open(url, '_blank');
       } else {
-        const { uri } = await FileSystem.downloadAsync(url, `${FileSystem.cacheDirectory}constancia-agente.pdf`);
-        if (await Sharing.isAvailableAsync()) await Sharing.shareAsync(uri, { dialogTitle: t.constancia });
-        else await Linking.openURL(uri);
+        await descargarArchivoAutenticado(url, 'constancia-agente.pdf', 'application/pdf');
       }
     } catch { /* silencioso */ } finally {
       setOpening('');

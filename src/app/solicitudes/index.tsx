@@ -8,22 +8,21 @@ import { useSolicitudes } from '@/hooks/useSolicitudes';
 import { useAuthStore } from '@/stores/auth';
 import { useSettingsStore } from '@/stores/settings';
 import { palette } from '@/theme';
-import * as FileSystem from 'expo-file-system/legacy';
+import { descargarArchivoAutenticado } from '@/utils/downloadFile';
 import { useRouter } from 'expo-router';
-import * as Sharing from 'expo-sharing';
 import { useMemo, useState } from 'react';
 import { Platform, ScrollView, StyleSheet, View } from 'react-native';
 import {
-  ActivityIndicator,
-  Button,
-  Chip,
-  Divider,
-  Icon,
-  IconButton,
-  Searchbar,
-  Text,
-  TouchableRipple,
-  useTheme,
+    ActivityIndicator,
+    Button,
+    Chip,
+    Divider,
+    Icon,
+    IconButton,
+    Searchbar,
+    Text,
+    TouchableRipple,
+    useTheme,
 } from 'react-native-paper';
 
 const labels = {
@@ -356,8 +355,7 @@ export default function SolicitudesScreen() {
       if (Platform.OS === 'web') {
         window.open(url, '_blank');
       } else {
-        const { uri } = await FileSystem.downloadAsync(url, `${FileSystem.cacheDirectory}${nombre}`);
-        if (await Sharing.isAvailableAsync()) await Sharing.shareAsync(uri, { dialogTitle: nombre });
+        await descargarArchivoAutenticado(url, nombre, formato === 'excel' ? 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' : 'application/pdf');
       }
     } finally {
       setExporting('');

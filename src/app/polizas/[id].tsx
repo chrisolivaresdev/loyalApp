@@ -1,17 +1,17 @@
 import { OPCION } from '@/api/agent';
 import {
-  actualizarAsegurado,
-  Asegurado,
-  CertificadoDetalle,
-  Cuota,
-  documentoDescargaUrl,
-  documentoGeneradoUrl,
-  enviarResumenSms,
-  getAseguradoEdicion,
-  getTiposPersona,
-  registrarNota,
-  solicitarPagoLinea,
-  subirDocumento
+    actualizarAsegurado,
+    Asegurado,
+    CertificadoDetalle,
+    Cuota,
+    documentoDescargaUrl,
+    documentoGeneradoUrl,
+    enviarResumenSms,
+    getAseguradoEdicion,
+    getTiposPersona,
+    registrarNota,
+    solicitarPagoLinea,
+    subirDocumento
 } from '@/api/certificados';
 import { getPaises } from '@/api/cotizaciones';
 import { AppShell, Lang } from '@/components/AppShell';
@@ -23,29 +23,28 @@ import { useResponsive } from '@/hooks/useResponsive';
 import { useAuthStore } from '@/stores/auth';
 import { useSettingsStore } from '@/stores/settings';
 import { palette } from '@/theme';
+import { descargarArchivoAutenticado } from '@/utils/downloadFile';
 import { useMutation, useQuery } from '@tanstack/react-query';
 import * as DocumentPicker from 'expo-document-picker';
-import * as FileSystem from 'expo-file-system/legacy';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import * as Sharing from 'expo-sharing';
 import { useEffect, useMemo, useState } from 'react';
 import { Linking, Platform, ScrollView, StyleSheet, View } from 'react-native';
 import {
-  ActivityIndicator,
-  Button,
-  Chip,
-  Dialog,
-  Divider,
-  Icon,
-  IconButton,
-  Portal,
-  Snackbar,
-  Switch,
-  Text,
-  TextInput,
-  Tooltip,
-  TouchableRipple,
-  useTheme
+    ActivityIndicator,
+    Button,
+    Chip,
+    Dialog,
+    Divider,
+    Icon,
+    IconButton,
+    Portal,
+    Snackbar,
+    Switch,
+    Text,
+    TextInput,
+    Tooltip,
+    TouchableRipple,
+    useTheme
 } from 'react-native-paper';
 
 const labels = {
@@ -159,9 +158,11 @@ async function openProtectedUrl(url: string, nombre: string) {
     return;
   }
   const safe = nombre.replace(/[^\w.\-]+/g, '_');
-  const { uri } = await FileSystem.downloadAsync(url, `${FileSystem.cacheDirectory}${safe}`);
-  if (await Sharing.isAvailableAsync()) await Sharing.shareAsync(uri, { dialogTitle: nombre });
-  else await Linking.openURL(uri);
+  try {
+    await descargarArchivoAutenticado(url, safe);
+  } catch {
+    await Linking.openURL(url);
+  }
 }
 
 const initials = (nombre = '') =>

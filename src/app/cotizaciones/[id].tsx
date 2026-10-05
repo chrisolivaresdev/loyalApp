@@ -258,12 +258,15 @@ const PRODUCT_SUFFIX: Record<number, string> = {
 
 const PERSON_LABEL: Record<string, keyof T> = { '01': 'holder', '02': 'spouse', '03': 'dependent', T: 'holder', C: 'spouse', D: 'dependent' };
 
-function InfoRow({ label, value }: { label: string; value?: string | number | null }) {
+function InfoRow({ label, value, paper }: { label: string; value?: string | number | null; paper?: boolean }) {
   const { colors } = useTheme();
+  // paper: la previa es un documento con fondo blanco fijo → texto oscuro siempre
+  const labelColor = paper ? palette.slate[500] : colors.onSurfaceVariant;
+  const valueColor = paper ? palette.slate[900] : colors.onSurface;
   return (
     <View style={styles.infoRow}>
-      <Text variant="bodyMedium" style={{ color: colors.onSurfaceVariant }}>{label}</Text>
-      <Text variant="bodyMedium" style={{ fontFamily: 'Inter_600SemiBold', flexShrink: 1, textAlign: 'right' }} numberOfLines={2}>
+      <Text variant="bodyMedium" style={{ color: labelColor }}>{label}</Text>
+      <Text variant="bodyMedium" style={{ fontFamily: 'Inter_600SemiBold', flexShrink: 1, textAlign: 'right', color: valueColor }} numberOfLines={2}>
         {value ?? '—'}
       </Text>
     </View>
@@ -560,15 +563,15 @@ export default function CotizacionDetalleScreen() {
           </View>
           <View style={styles.docInfo}>
             <View style={{ flex: 1 }}>
-              <InfoRow label={t.name} value={data?.NombreSolicitante} />
-              <InfoRow label={t.age} value={data?.EdadSolicitante} />
-              <InfoRow label={t.dependents} value={data?.NumeroDependientes} />
-              <InfoRow label={t.country} value={data?.DescripcionPais} />
+              <InfoRow paper label={t.name} value={data?.NombreSolicitante} />
+              <InfoRow paper label={t.age} value={data?.EdadSolicitante} />
+              <InfoRow paper label={t.dependents} value={data?.NumeroDependientes} />
+              <InfoRow paper label={t.country} value={data?.DescripcionPais} />
             </View>
             <View style={{ flex: 1 }}>
-              <InfoRow label={t.agent} value={user?.NombreCompletoUsuario} />
-              <InfoRow label={t.code} value={codigo} />
-              <InfoRow label={t.email} value={data?.Correo?.trim()} />
+              <InfoRow paper label={t.agent} value={user?.NombreCompletoUsuario} />
+              <InfoRow paper label={t.code} value={codigo} />
+              <InfoRow paper label={t.email} value={data?.Correo?.trim()} />
             </View>
           </View>
           {freqKeys.map((f) => {

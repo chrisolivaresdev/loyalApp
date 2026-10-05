@@ -1,13 +1,13 @@
 import { OPCION } from '@/api/agent';
 import { api } from '@/api/client';
 import {
-  ArchivoInput,
-  DetalleSolicitudResponse,
-  DocumentoPendiente,
-  subirDocumentoPendiente,
-  subirDocumentoSolicitud,
-  toggleMayorEdad,
-  toggleVacunado,
+    ArchivoInput,
+    DetalleSolicitudResponse,
+    DocumentoPendiente,
+    subirDocumentoPendiente,
+    subirDocumentoSolicitud,
+    toggleMayorEdad,
+    toggleVacunado,
 } from '@/api/solicitudes';
 import { AppShell, Lang } from '@/components/AppShell';
 import { useLogout } from '@/hooks/useAuth';
@@ -17,28 +17,27 @@ import { useSolicitudDetalle } from '@/hooks/useSolicitudes';
 import { useAuthStore } from '@/stores/auth';
 import { useSettingsStore } from '@/stores/settings';
 import { palette } from '@/theme';
+import { descargarArchivoAutenticado } from '@/utils/downloadFile';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import * as DocumentPicker from 'expo-document-picker';
-import * as FileSystem from 'expo-file-system/legacy';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import * as Sharing from 'expo-sharing';
 import { useMemo, useState } from 'react';
 import { Platform, ScrollView, StyleSheet, View } from 'react-native';
 import {
-  ActivityIndicator,
-  Banner,
-  Button,
-  Checkbox,
-  Dialog,
-  Divider,
-  Icon,
-  IconButton,
-  Portal,
-  Searchbar,
-  Snackbar,
-  Text,
-  TouchableRipple,
-  useTheme,
+    ActivityIndicator,
+    Banner,
+    Button,
+    Checkbox,
+    Dialog,
+    Divider,
+    Icon,
+    IconButton,
+    Portal,
+    Searchbar,
+    Snackbar,
+    Text,
+    TouchableRipple,
+    useTheme,
 } from 'react-native-paper';
 
 type T = { [key: string]: string };
@@ -302,8 +301,7 @@ export default function SolicitudDetalleScreen() {
       return;
     }
     const safe = nombre.replace(/[^\w.\-]+/g, '_') || `doc-${codigoDocumento}`;
-    const { uri } = await FileSystem.downloadAsync(url, `${FileSystem.cacheDirectory}${safe}`);
-    if (await Sharing.isAvailableAsync()) await Sharing.shareAsync(uri, { dialogTitle: nombre });
+    await descargarArchivoAutenticado(url, safe);
   };
 
   if (!allowed) return null;
