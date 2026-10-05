@@ -8,6 +8,8 @@ import { Avatar, Icon, Text, useTheme } from 'react-native-paper';
 interface AgentCardProps {
   data: DashboardResponse;
   t: Record<string, string>;
+  /** Foto de perfil (data URL/http) — viene de Usuario.UsuarioImagen */
+  avatarUri?: string | null;
 }
 
 const getInitials = (name: string) =>
@@ -44,9 +46,10 @@ function ContactItem({
   );
 }
 
-export function AgentCard({ data, t }: AgentCardProps) {
+export function AgentCard({ data, t, avatarUri }: AgentCardProps) {
   const { colors, roundness } = useTheme();
   const { isMobile } = useResponsive();
+  const avatarSize = isMobile ? 64 : 80;
 
   return (
     <View
@@ -81,12 +84,16 @@ export function AgentCard({ data, t }: AgentCardProps) {
 
       <View style={[styles.body, isMobile ? null : styles.bodyWide]}>
         <View style={[styles.identity, isMobile ? null : styles.identityWide]}>
-          <Avatar.Text
-            size={isMobile ? 64 : 80}
-            label={getInitials(data.NombreCompleto)}
-            style={{ backgroundColor: palette.gold[500] }}
-            labelStyle={{ color: palette.navy[900], fontFamily: 'Inter_700Bold' }}
-          />
+          {avatarUri ? (
+            <Avatar.Image size={avatarSize} source={{ uri: avatarUri }} />
+          ) : (
+            <Avatar.Text
+              size={avatarSize}
+              label={getInitials(data.NombreCompleto)}
+              style={{ backgroundColor: palette.gold[500] }}
+              labelStyle={{ color: palette.navy[900], fontFamily: 'Inter_700Bold' }}
+            />
+          )}
           <View style={{ flex: 1, gap: 2 }}>
             <Text variant="titleLarge" numberOfLines={2}>
               {data.NombreCompleto?.trim()}

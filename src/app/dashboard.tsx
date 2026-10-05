@@ -1,4 +1,4 @@
-import { OPCION } from '@/api/agent';
+import { getImagenPerfil, OPCION } from '@/api/agent';
 import { AgentCard } from '@/components/AgentCard';
 import { AppShell, Lang } from '@/components/AppShell';
 import { BreakdownCard } from '@/components/BreakdownCard';
@@ -18,6 +18,8 @@ import { useSolicitudes } from '@/hooks/useSolicitudes';
 import { useAuthStore } from '@/stores/auth';
 import { useSettingsStore } from '@/stores/settings';
 import { palette } from '@/theme';
+import { avatarImageUri } from '@/utils/avatar';
+import { useQuery } from '@tanstack/react-query';
 import { useRouter } from 'expo-router';
 import { useState } from 'react';
 import { StyleSheet, View } from 'react-native';
@@ -292,6 +294,15 @@ export default function DashboardScreen() {
 
   const userName = user?.NombreCompletoUsuario ?? '';
 
+  // Foto de perfil (Usuario.UsuarioImagen) — mismo origen que el portal viejo
+  const localAvatar = avatarImageUri(user?.UsuarioImagen);
+  const { data: avatarFetched } = useQuery({
+    queryKey: ['imagen-perfil'],
+    enabled: !localAvatar,
+    queryFn: () => getImagenPerfil().then((r) => r.imagen),
+  });
+  const avatarUri = localAvatar ?? avatarFetched ?? null;
+
   return (
     <>
       <AppShell
@@ -343,7 +354,7 @@ export default function DashboardScreen() {
 
         {data && (
           <>
-            <AgentCard data={data} t={t} />
+            <AgentCard data={data} t={t} avatarUri={avatarUri} />
 
             <View style={[styles.structureToggle, { backgroundColor: colors.surface, borderColor: colors.outlineVariant, borderRadius: roundness }]}>
               <View style={{ flex: 1 }}>
@@ -491,12 +502,16 @@ export default function DashboardScreen() {
           <Dialog.Content style={{ paddingTop: 24 }}>
             {user ? (
               <View style={styles.profile}>
-                <Avatar.Text
-                  size={84}
-                  label={getInitials(user.NombreCompletoUsuario)}
-                  style={{ backgroundColor: palette.gold[500] }}
-                  labelStyle={{ color: palette.navy[900], fontFamily: 'Inter_700Bold' }}
-                />
+                {avatarUri ? (
+                  <Avatar.Image size={84} source={{ uri: avatarUri }} />
+                ) : (
+                  <Avatar.Text
+                    size={84}
+                    label={getInitials(user.NombreCompletoUsuario)}
+                    style={{ backgroundColor: palette.gold[500] }}
+                    labelStyle={{ color: palette.navy[900], fontFamily: 'Inter_700Bold' }}
+                  />
+                )}
                 <Text variant="titleLarge" style={{ textAlign: 'center' }}>
                   {user.NombreCompletoUsuario.trim()}
                 </Text>

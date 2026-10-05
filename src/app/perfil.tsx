@@ -7,9 +7,10 @@ import { useResponsive } from '@/hooks/useResponsive';
 import { useAuthStore } from '@/stores/auth';
 import { useSettingsStore } from '@/stores/settings';
 import { palette } from '@/theme';
+import { avatarImageUri } from '@/utils/avatar';
 import { useMutation, useQuery } from '@tanstack/react-query';
-import * as DocumentPicker from 'expo-document-picker';
-import * as FileSystem from 'expo-file-system/legacy';
+import * as ImageManipulator from 'expo-image-manipulator';
+import * as ImagePicker from 'expo-image-picker';
 import { useRouter } from 'expo-router';
 import { useEffect, useMemo, useState } from 'react';
 import { Image, KeyboardAvoidingView, Platform, ScrollView, StyleSheet, View } from 'react-native';
@@ -75,6 +76,24 @@ const labels: Record<Lang, { [key: string]: string }> = {
 
 const getInitials = (name: string) =>
   name.trim().split(/\s+/).filter(Boolean).map((n) => n[0]).join('').slice(0, 2).toUpperCase();
+
+// Web no tiene expo-image-manipulator → redimensionar con canvas (API máx. 2 MB)
+const resizeImageWeb = (uri: string, size: number): Promise<string> =>
+  new Promise((resolve, reject) => {
+    const img = new window.Image();
+    img.onload = () => {
+      const scale = Math.min(1, size / Math.max(img.width, img.height));
+      const canvas = document.createElement('canvas');
+      canvas.width = Math.round(img.width * scale);
+      canvas.height = Math.round(img.height * scale);
+      const ctx = canvas.getContext('2d');
+      if (!ctx) return reject(new Error('canvas'));
+      ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+      resolve(canvas.toDataURL('image/jpeg', 0.8));
+    };
+    img.onerror = () => reject(new Error('image'));
+    img.src = uri;
+  });
 
 const COUNTRIES: Record<Lang, { value: string; label: string }[]> = {
   es: [
@@ -146,14 +165,14 @@ export default function PerfilScreen() {
   const [email, setEmail] = useState(user?.DireccionEmail ?? '');
   const [phone, setPhone] = useState('');
   const [country, setCountry] = useState('');
-  const [imageUrl, setImageUrl] = useState(user?.UsuarioImagen ?? '');
+  const [imageUrl, setImageUrl] = useState(() => avatarImageUri(user?.UsuarioImagen) ?? '');
   const [snack, setSnack] = useState(false);
   const [imgError, setImgError] = useState('');
 
   useEffect(() => {
     if (user) {
       setEmail(user.DireccionEmail ?? '');
-      setImageUrl(user.UsuarioImagen ?? '');
+      setImageUrl(avatarImageUri(user.UsuarioImagen) ?? '');
     }
   }, [user]);
 
@@ -180,34 +199,30 @@ export default function PerfilScreen() {
 
   const pickImage = async () => {
     try {
-      const res = await DocumentPicker.getDocumentAsync({
-        type: 'image/*',
-        copyToCacheDirectory: true,
+      setImgError('');
+      const res = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ['images'],
+        allowsEditing: Platform.OS !== 'web', // recorte cuadrado nativo
+        aspect: [1, 1],
+        quality: 0.9,
         base64: true,
       });
       const asset = res.assets?.[0];
-      if (res.canceled || !asset) return;
-      let dataUri: string;
-      if (asset.base64) {
-        dataUri = `data:${asset.mimeType || 'image/jpeg'};base64,${asset.base64}`;
-      } else if (Platform.OS === 'web') {
-        // En web FileSystem no existe: el asset trae un File/blob
-        const blob = (asset as any).file instanceof Blob
-          ? (asset as any).file as Blob
-          : await (await fetch(asset.uri)).blob();
-        dataUri = await new Promise<string>((resolve, reject) => {
-          const fr = new FileReader();
-          fr.onload = () => resolve(fr.result as string);
-          fr.onerror = () => reject(fr.error);
-          fr.readAsDataURL(blob);
-        });
-      } else {
-        const b64 = await FileSystem.readAsStringAsync(asset.uri, { encoding: 'base64' });
-        dataUri = `data:${asset.mimeType || 'image/jpeg'};base64,${b64}`;
-      }
+      if (res.canceled || !asset?.uri) return;
+
+      // Comprimir antes de subir: las fotos del teléfono superan el límite del API (2 MB)
+      const dataUri = Platform.OS === 'web'
+        ? await resizeImageWeb(asset.uri, 480)
+        : `data:image/jpeg;base64,${(
+            await ImageManipulator.manipulateAsync(
+              asset.uri,
+              [{ resize: { width: 480 } }],
+              { compress: 0.75, format: ImageManipulator.SaveFormat.JPEG, base64: true },
+            )
+          ).base64}`;
       uploadImg.mutate(dataUri);
-    } catch {
-      setImgError('Error');
+    } catch (e: any) {
+      setImgError(e?.message || 'Error');
     }
   };
 
@@ -223,8 +238,8 @@ export default function PerfilScreen() {
   const isValidEmail = email.includes('@') && email.includes('.');
 
   const avatar = useMemo(() => {
-    if (imageUrl.trim().startsWith('http') || imageUrl.trim().startsWith('data:')) {
-      return <Image source={{ uri: imageUrl }} style={[styles.image, { borderRadius: roundness }]} />;
+    if (imageUrl) {
+      return <Image source={{ uri: imageUrl }} style={styles.image} />;
     }
     return (
       <Avatar.Text
@@ -381,7 +396,7 @@ const styles = StyleSheet.create({
   content: { padding: 20, gap: 20, maxWidth: 760, alignSelf: 'center', width: '100%' },
   header: { flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between', gap: 16 },
   avatarWrap: { alignItems: 'center', gap: 4 },
-  image: { width: 120, height: 120 },
+  image: { width: 120, height: 120, borderRadius: 60 },
   card: { padding: 8, borderWidth: 1, borderColor: 'transparent' },
   field: { gap: 2 },
   actions: { flexDirection: 'row', gap: 12, justifyContent: 'flex-end' },

@@ -2,21 +2,22 @@ import { OPCION } from '@/api/agent';
 import { usePermisos } from '@/hooks/usePermisos';
 import { useResponsive } from '@/hooks/useResponsive';
 import { useAuthStore } from '@/stores/auth';
-import { useSettingsStore } from '@/stores/settings';
+import { ThemeMode, useSettingsStore } from '@/stores/settings';
 import { palette } from '@/theme';
+import { avatarImageUri } from '@/utils/avatar';
 import { LinearGradient } from 'expo-linear-gradient';
 import { usePathname, useRouter } from 'expo-router';
 import { ReactNode, useState } from 'react';
-import { Image, ScrollView, StyleSheet, View } from 'react-native';
+import { Image, KeyboardAvoidingView, Platform, ScrollView, StyleSheet, View } from 'react-native';
 import {
-    Avatar,
-    Divider,
-    Icon,
-    IconButton,
-    Menu,
-    Text,
-    TouchableRipple,
-    useTheme
+  Avatar,
+  Divider,
+  Icon,
+  IconButton,
+  Menu,
+  Text,
+  TouchableRipple,
+  useTheme
 } from 'react-native-paper';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
@@ -38,12 +39,16 @@ export interface MenuLabels {
   cancun: string;
   menu?: string;
   brand?: string;
+  theme?: string;
+  themeSystem?: string;
+  themeLight?: string;
+  themeDark?: string;
 }
 
 const MENU_LABELS: Record<Lang, MenuLabels> = {
-  es: { profile: 'Mi perfil', cartera: 'Cartera', logout: 'Cerrar sesión', language: 'Idioma', home: 'Inicio', quotes: 'Cotizaciones', requests: 'Solicitudes', policies: 'Pólizas', commissions: 'Comisiones', staff: 'Personal', agents: 'Agentes', resources: 'Recursos', cancun: 'Cancún 2023 Fotos' },
-  en: { profile: 'My profile', cartera: 'Portfolio', logout: 'Log out', language: 'Language', home: 'Home', quotes: 'Quotes', requests: 'Requests', policies: 'Policies', commissions: 'Commissions', staff: 'Staff', agents: 'Agents', resources: 'Resources', cancun: 'Cancun 2023 Photos' },
-  pt: { profile: 'Meu perfil', cartera: 'Carteira', logout: 'Sair', language: 'Idioma', home: 'Início', quotes: 'Cotações', requests: 'Solicitações', policies: 'Apólices', commissions: 'Comissões', staff: 'Equipe', agents: 'Agentes', resources: 'Recursos', cancun: 'Fotos Cancún 2023' },
+  es: { profile: 'Mi perfil', cartera: 'Cartera', logout: 'Cerrar sesión', language: 'Idioma', home: 'Inicio', quotes: 'Cotizaciones', requests: 'Solicitudes', policies: 'Pólizas', commissions: 'Comisiones', staff: 'Personal', agents: 'Agentes', resources: 'Recursos', cancun: 'Cancún 2023 Fotos', theme: 'Tema', themeSystem: 'Automático', themeLight: 'Claro', themeDark: 'Oscuro' },
+  en: { profile: 'My profile', cartera: 'Portfolio', logout: 'Log out', language: 'Language', home: 'Home', quotes: 'Quotes', requests: 'Requests', policies: 'Policies', commissions: 'Commissions', staff: 'Staff', agents: 'Agents', resources: 'Resources', cancun: 'Cancun 2023 Photos', theme: 'Theme', themeSystem: 'System', themeLight: 'Light', themeDark: 'Dark' },
+  pt: { profile: 'Meu perfil', cartera: 'Carteira', logout: 'Sair', language: 'Idioma', home: 'Início', quotes: 'Cotações', requests: 'Solicitações', policies: 'Apólices', commissions: 'Comissões', staff: 'Equipe', agents: 'Agentes', resources: 'Recursos', cancun: 'Fotos Cancún 2023', theme: 'Tema', themeSystem: 'Automático', themeLight: 'Claro', themeDark: 'Escuro' },
 };
 
 interface AppShellProps {
@@ -119,6 +124,40 @@ function LangMenu({
         onPress={() => { onChange('pt'); setOpen(false); }}
         title="Português"
       />
+    </Menu>
+  );
+}
+
+const THEME_ICONS: Record<ThemeMode, string> = {
+  system: 'theme-light-dark',
+  light: 'white-balance-sunny',
+  dark: 'moon-waning-crescent',
+};
+
+/** Selector claro/oscuro/automático — persiste la preferencia del usuario. */
+function ThemeMenu({ color, labels }: { color: string; labels: MenuLabels }) {
+  const [open, setOpen] = useState(false);
+  const mode = useSettingsStore((s) => s.themeMode);
+  const setMode = useSettingsStore((s) => s.setThemeMode);
+  const { colors } = useTheme();
+  return (
+    <Menu
+      visible={open}
+      onDismiss={() => setOpen(false)}
+      anchor={
+        <IconButton
+          icon={THEME_ICONS[mode]}
+          iconColor={color}
+          size={20}
+          onPress={() => setOpen(true)}
+          accessibilityLabel={labels.theme ?? 'Tema'}
+        />
+      }
+      contentStyle={{ backgroundColor: colors.surface }}
+    >
+      <Menu.Item leadingIcon={mode === 'system' ? 'check' : THEME_ICONS.system} onPress={() => { setMode('system'); setOpen(false); }} title={labels.themeSystem ?? 'Automático'} />
+      <Menu.Item leadingIcon={mode === 'light' ? 'check' : THEME_ICONS.light} onPress={() => { setMode('light'); setOpen(false); }} title={labels.themeLight ?? 'Claro'} />
+      <Menu.Item leadingIcon={mode === 'dark' ? 'check' : THEME_ICONS.dark} onPress={() => { setMode('dark'); setOpen(false); }} title={labels.themeDark ?? 'Oscuro'} />
     </Menu>
   );
 }
@@ -289,7 +328,10 @@ function DesktopShell({
       <View style={styles.flex}>
         <View style={[styles.topbar, { borderBottomColor: colors.outlineVariant, backgroundColor: colors.surface }]}>
           <Text variant="titleLarge">{title}</Text>
-          <LangMenu lang={lang} onChange={onLangChange} color={colors.onSurface} label={labels.language} />
+          <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+            <ThemeMenu color={colors.onSurface} labels={labels} />
+            <LangMenu lang={lang} onChange={onLangChange} color={colors.onSurface} label={labels.language} />
+          </View>
         </View>
         <ScrollView contentContainerStyle={styles.desktopContent}>
           <View style={styles.maxWidth}>{children}</View>
@@ -332,14 +374,19 @@ function UserMenu({
   const showCartera = codigoAgente > 0 && canExecute(OPCION.perfil) && !onCartera;
   const pick = (fn: () => void) => () => { setOpen(false); fn(); };
 
+  const avatarUri = avatarImageUri(user?.UsuarioImagen);
   const userBlock = (
     <View style={styles.userRow}>
-      <Avatar.Text
-        size={36}
-        label={getInitials(userName)}
-        style={{ backgroundColor: palette.gold[500] }}
-        labelStyle={{ color: palette.indigo[900], fontFamily: 'Inter_600SemiBold' }}
-      />
+      {avatarUri ? (
+        <Avatar.Image size={36} source={{ uri: avatarUri }} />
+      ) : (
+        <Avatar.Text
+          size={36}
+          label={getInitials(userName)}
+          style={{ backgroundColor: palette.gold[500] }}
+          labelStyle={{ color: palette.indigo[900], fontFamily: 'Inter_600SemiBold' }}
+        />
+      )}
       <View style={{ flex: 1 }}>
         <Text variant="labelLarge" style={{ color: '#FFFFFF' }} numberOfLines={1}>
           {userName.trim()}
@@ -520,6 +567,7 @@ function MobileShell({
           <Brand compact lang={activeLang} />
           <View style={styles.mobileActions}>
             <MobileNavMenu onHome={onHome} onCotizaciones={onCotizaciones} onSolicitudes={onSolicitudes} onPolizas={onPolizas} onComisiones={onComisiones} onPersonal={onPersonal} onAgentes={onAgentes} onRecursos={onRecursos} onProfile={onProfile} onLogout={onLogout} labels={labels} lang={lang} />
+            <ThemeMenu color="#FFFFFF" labels={labels} />
             <LangMenu lang={lang} onChange={onLangChange} color="#FFFFFF" label={labels.language} />
             {showCarteraIcon ? (
               <IconButton icon="briefcase-outline" iconColor="#FFFFFF" onPress={() => router.push(`/agentes/${codigoAgente}` as any)} accessibilityLabel={labels.cartera} />
@@ -535,9 +583,11 @@ function MobileShell({
           {userName.trim()}
         </Text>
       </LinearGradient>
-      <ScrollView contentContainerStyle={[styles.mobileContent, { paddingBottom: insets.bottom + 24 }]}>
-        {children}
-      </ScrollView>
+      <KeyboardAvoidingView style={styles.flex} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
+        <ScrollView keyboardShouldPersistTaps="handled" contentContainerStyle={[styles.mobileContent, { paddingBottom: insets.bottom + 24 }]}>
+          {children}
+        </ScrollView>
+      </KeyboardAvoidingView>
     </View>
   );
 }

@@ -1,3 +1,4 @@
+import { useSettingsStore } from '@/stores/settings';
 import { getTheme } from '@/theme';
 import {
     Inter_400Regular,
@@ -20,7 +21,8 @@ const queryClient = new QueryClient();
 
 export default function RootLayout() {
   const colorScheme = useColorScheme();
-  const activeScheme = colorScheme === 'dark' ? 'dark' : 'light';
+  const themeMode = useSettingsStore((s) => s.themeMode);
+  const activeScheme = themeMode === 'system' ? (colorScheme === 'dark' ? 'dark' : 'light') : themeMode;
   const paperTheme = getTheme(activeScheme);
   const navTheme = activeScheme === 'dark' ? DarkTheme : DefaultTheme;
 

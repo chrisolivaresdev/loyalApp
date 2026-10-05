@@ -25,6 +25,7 @@ import {
     TouchableRipple,
     useTheme
 } from 'react-native-paper';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 const labels: Record<Lang, { [key: string]: string }> = {
   es: {
@@ -341,6 +342,7 @@ export default function CotizacionesScreen() {
   const router = useRouter();
   const { colors, roundness } = useTheme();
   const { isDesktop } = useResponsive();
+  const insets = useSafeAreaInsets();
   const lang = useSettingsStore((s) => s.lang);
   const setLang = useSettingsStore((s) => s.setLang);
   const t = labels[lang];
@@ -543,7 +545,7 @@ export default function CotizacionesScreen() {
       </AppShell>
 
       {!isDesktop && canCreate && (
-        <FAB icon="plus" label={t.newQuote} onPress={goNew} style={[styles.fab, { backgroundColor: palette.indigo[500] }]} color="#FFFFFF" />
+        <FAB icon="plus" label={t.newQuote} onPress={goNew} style={[styles.fab, { bottom: insets.bottom, backgroundColor: palette.indigo[500] }]} color="#FFFFFF" />
       )}
 
     </>

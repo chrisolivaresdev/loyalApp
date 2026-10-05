@@ -1,4 +1,5 @@
 import { getCotizacionPdfArrayBuffer } from '@/api/cotizaciones';
+import { arrayBufferToBase64 } from '@/utils/base64';
 import { useEffect, useState } from 'react';
 import { StyleSheet, View } from 'react-native';
 import { ActivityIndicator, Icon, Text, useTheme } from 'react-native-paper';
@@ -14,22 +15,6 @@ interface Props {
 
 const PDFJS_VERSION = '3.11.174';
 const PDFJS_BASE = `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/${PDFJS_VERSION}`;
-
-const B64 = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/';
-const toBase64 = (buf: ArrayBuffer): string => {
-  const bytes = new Uint8Array(buf);
-  let out = '';
-  for (let i = 0; i < bytes.length; i += 3) {
-    const a = bytes[i];
-    const b = i + 1 < bytes.length ? bytes[i + 1] : undefined;
-    const c = i + 2 < bytes.length ? bytes[i + 2] : undefined;
-    out += B64[a >> 2]
-      + B64[((a & 3) << 4) | ((b ?? 0) >> 4)]
-      + (b === undefined ? '=' : B64[((b & 15) << 2) | ((c ?? 0) >> 6)])
-      + (c === undefined ? '=' : B64[c & 63]);
-  }
-  return out;
-};
 
 const buildHtml = (base64: string) => `<!DOCTYPE html><html><head>
 <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -75,7 +60,7 @@ export function PdfPreview({ codigo, producto, tipoVenta, loadingLabel, errorLab
     setError(false);
     setWebReady(false);
     getCotizacionPdfArrayBuffer(codigo, producto, tipoVenta)
-      .then((buf) => { if (alive) setHtml(buildHtml(toBase64(buf))); })
+      .then((buf) => { if (alive) setHtml(buildHtml(arrayBufferToBase64(buf))); })
       .catch(() => { if (alive) setError(true); });
     return () => { alive = false; };
   }, [codigo, producto, tipoVenta]);

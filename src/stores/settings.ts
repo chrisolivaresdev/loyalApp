@@ -3,17 +3,22 @@ import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 
 export type Lang = 'es' | 'en' | 'pt';
+export type ThemeMode = 'system' | 'light' | 'dark';
 
 interface SettingsState {
   lang: Lang;
+  themeMode: ThemeMode;
   setLang: (lang: Lang) => void;
+  setThemeMode: (mode: ThemeMode) => void;
 }
 
 export const useSettingsStore = create<SettingsState>()(
   persist(
     (set) => ({
       lang: 'es',
+      themeMode: 'system',
       setLang: (lang) => set({ lang }),
+      setThemeMode: (themeMode) => set({ themeMode }),
     }),
     {
       name: 'loyal-settings',
