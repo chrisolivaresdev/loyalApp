@@ -1,14 +1,14 @@
-import { actualizarImagenPerfil, getImagenPerfil, OPCION } from '@/api/agent';
+import { actualizarImagenPerfil, OPCION } from '@/api/agent';
 import { AppShell, Lang } from '@/components/AppShell';
 import { SelectField } from '@/components/SelectField';
 import { useLogout } from '@/hooks/useAuth';
+import { IMAGEN_PERFIL_KEY, useAvatarImagen } from '@/hooks/useAvatar';
 import { useRequirePermiso } from '@/hooks/usePermisos';
 import { useResponsive } from '@/hooks/useResponsive';
 import { useAuthStore } from '@/stores/auth';
 import { useSettingsStore } from '@/stores/settings';
 import { palette } from '@/theme';
-import { avatarImageUri } from '@/utils/avatar';
-import { useMutation, useQuery } from '@tanstack/react-query';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
 import * as ImageManipulator from 'expo-image-manipulator';
 import * as ImagePicker from 'expo-image-picker';
 import { useRouter } from 'expo-router';
@@ -165,32 +165,23 @@ export default function PerfilScreen() {
   const [email, setEmail] = useState(user?.DireccionEmail ?? '');
   const [phone, setPhone] = useState('');
   const [country, setCountry] = useState('');
-  const [imageUrl, setImageUrl] = useState(() => avatarImageUri(user?.UsuarioImagen) ?? '');
+  // Foto: hook compartido (menú, dashboard y perfil usan el mismo origen/cache)
+  const fetchedAvatar = useAvatarImagen();
+  const queryClient = useQueryClient();
+  const [uploaded, setUploaded] = useState<string | null>(null);
+  const imageUrl = uploaded ?? fetchedAvatar ?? '';
   const [snack, setSnack] = useState(false);
   const [imgError, setImgError] = useState('');
 
   useEffect(() => {
-    if (user) {
-      setEmail(user.DireccionEmail ?? '');
-      setImageUrl(avatarImageUri(user.UsuarioImagen) ?? '');
-    }
+    if (user) setEmail(user.DireccionEmail ?? '');
   }, [user]);
-
-  // Carga la foto almacenada en la BD si aún no está en el perfil
-  useQuery({
-    queryKey: ['imagen-perfil'],
-    enabled: !imageUrl,
-    queryFn: () =>
-      getImagenPerfil().then((r) => {
-        if (r.imagen) setImageUrl(r.imagen);
-        return r.imagen;
-      }),
-  });
 
   const uploadImg = useMutation({
     mutationFn: actualizarImagenPerfil,
     onSuccess: (_r, dataUri) => {
-      setImageUrl(dataUri);
+      setUploaded(dataUri);
+      queryClient.setQueryData([IMAGEN_PERFIL_KEY], dataUri);
       if (user) setUser({ ...user, UsuarioImagen: dataUri });
       setSnack(true);
     },

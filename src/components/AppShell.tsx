@@ -1,23 +1,23 @@
 import { OPCION } from '@/api/agent';
+import { useAvatarImagen } from '@/hooks/useAvatar';
 import { usePermisos } from '@/hooks/usePermisos';
 import { useResponsive } from '@/hooks/useResponsive';
 import { useAuthStore } from '@/stores/auth';
 import { ThemeMode, useSettingsStore } from '@/stores/settings';
 import { palette } from '@/theme';
-import { avatarImageUri } from '@/utils/avatar';
 import { LinearGradient } from 'expo-linear-gradient';
 import { usePathname, useRouter } from 'expo-router';
 import { ReactNode, useState } from 'react';
 import { Image, KeyboardAvoidingView, Platform, ScrollView, StyleSheet, View } from 'react-native';
 import {
-  Avatar,
-  Divider,
-  Icon,
-  IconButton,
-  Menu,
-  Text,
-  TouchableRipple,
-  useTheme
+    Avatar,
+    Divider,
+    Icon,
+    IconButton,
+    Menu,
+    Text,
+    TouchableRipple,
+    useTheme
 } from 'react-native-paper';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
@@ -374,7 +374,7 @@ function UserMenu({
   const showCartera = codigoAgente > 0 && canExecute(OPCION.perfil) && !onCartera;
   const pick = (fn: () => void) => () => { setOpen(false); fn(); };
 
-  const avatarUri = avatarImageUri(user?.UsuarioImagen);
+  const avatarUri = useAvatarImagen();
   const userBlock = (
     <View style={styles.userRow}>
       {avatarUri ? (

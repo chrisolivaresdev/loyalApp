@@ -1,4 +1,4 @@
-import { getImagenPerfil, OPCION } from '@/api/agent';
+import { OPCION } from '@/api/agent';
 import { AgentCard } from '@/components/AgentCard';
 import { AppShell, Lang } from '@/components/AppShell';
 import { BreakdownCard } from '@/components/BreakdownCard';
@@ -9,6 +9,7 @@ import { SolicitudesResumenCard } from '@/components/SolicitudesResumenCard';
 import { StatCard } from '@/components/StatCard';
 import { usePerfilAgente } from '@/hooks/useAgentes';
 import { useLogout } from '@/hooks/useAuth';
+import { useAvatarImagen } from '@/hooks/useAvatar';
 import { useCharts } from '@/hooks/useCharts';
 import { useResumenCotizaciones } from '@/hooks/useCotizaciones';
 import { useDashboard } from '@/hooks/useDashboard';
@@ -18,8 +19,6 @@ import { useSolicitudes } from '@/hooks/useSolicitudes';
 import { useAuthStore } from '@/stores/auth';
 import { useSettingsStore } from '@/stores/settings';
 import { palette } from '@/theme';
-import { avatarImageUri } from '@/utils/avatar';
-import { useQuery } from '@tanstack/react-query';
 import { useRouter } from 'expo-router';
 import { useState } from 'react';
 import { StyleSheet, View } from 'react-native';
@@ -295,13 +294,7 @@ export default function DashboardScreen() {
   const userName = user?.NombreCompletoUsuario ?? '';
 
   // Foto de perfil (Usuario.UsuarioImagen) — mismo origen que el portal viejo
-  const localAvatar = avatarImageUri(user?.UsuarioImagen);
-  const { data: avatarFetched } = useQuery({
-    queryKey: ['imagen-perfil'],
-    enabled: !localAvatar,
-    queryFn: () => getImagenPerfil().then((r) => r.imagen),
-  });
-  const avatarUri = localAvatar ?? avatarFetched ?? null;
+  const avatarUri = useAvatarImagen();
 
   return (
     <>
