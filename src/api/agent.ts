@@ -297,6 +297,10 @@ export const constanciaUrl = () => `${api.defaults.baseURL}/agentes/constancia`;
 export const getImagenPerfil = () =>
   api.get<{ imagen: string | null }>('/agentes/perfil/imagen').then((r) => r.data);
 
+// Foto del agente (Agentes.ImagenAgente, dbSeguros) — la de la tarjeta del dashboard
+export const getImagenAgente = () =>
+  api.get<{ imagen: string | null }>('/agentes/imagen').then((r) => r.data);
+
 /** Sube la foto de perfil (data URL base64, image/*, máx. 2 MB). */
 export const actualizarImagenPerfil = (imagen: string) =>
   api.put<{ ok: boolean }>('/agentes/perfil/imagen', { imagen }).then((r) => r.data);

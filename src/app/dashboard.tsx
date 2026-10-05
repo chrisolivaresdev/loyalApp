@@ -9,7 +9,7 @@ import { SolicitudesResumenCard } from '@/components/SolicitudesResumenCard';
 import { StatCard } from '@/components/StatCard';
 import { usePerfilAgente } from '@/hooks/useAgentes';
 import { useLogout } from '@/hooks/useAuth';
-import { useAvatarImagen } from '@/hooks/useAvatar';
+import { useAvatarImagen, useImagenAgente } from '@/hooks/useAvatar';
 import { useCharts } from '@/hooks/useCharts';
 import { useResumenCotizaciones } from '@/hooks/useCotizaciones';
 import { useDashboard } from '@/hooks/useDashboard';
@@ -293,8 +293,9 @@ export default function DashboardScreen() {
 
   const userName = user?.NombreCompletoUsuario ?? '';
 
-  // Foto de perfil (Usuario.UsuarioImagen) — mismo origen que el portal viejo
+  // avatarUri: foto del USUARIO (menú/diálogo) — agentAvatarUri: foto del AGENTE (tarjeta)
   const avatarUri = useAvatarImagen();
+  const agentAvatarUri = useImagenAgente();
 
   return (
     <>
@@ -347,7 +348,7 @@ export default function DashboardScreen() {
 
         {data && (
           <>
-            <AgentCard data={data} t={t} avatarUri={avatarUri} />
+            <AgentCard data={data} t={t} avatarUri={agentAvatarUri} />
 
             <View style={[styles.structureToggle, { backgroundColor: colors.surface, borderColor: colors.outlineVariant, borderRadius: roundness }]}>
               <View style={{ flex: 1 }}>
