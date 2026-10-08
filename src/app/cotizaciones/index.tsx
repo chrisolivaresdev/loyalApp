@@ -20,6 +20,7 @@ import {
     Divider,
     FAB,
     Icon,
+    IconButton,
     Searchbar,
     Text,
     TouchableRipple,
@@ -210,6 +211,16 @@ const normalizeStatusCode = (code: string) => {
 
 const statusLabel = (code: string, lang: Lang) => statusLabels[lang][normalizeStatusCode(code)] ?? code;
 
+// Chips/estadísticas (conteo) van en plural; el estado de cada cotización queda en singular
+const statusLabelsPlural: Record<Lang, Record<string, string>> = {
+  es: { A: 'Aprobadas', G: 'Generadas', P: 'Pendientes', E: 'Enviadas', I: 'Inactivas', C: 'Canceladas', R: 'Rechazadas', '1': 'Aprobadas', '3': 'Generadas', '01': 'Aprobadas', '03': 'Generadas' },
+  en: { A: 'Approved', G: 'Generated', P: 'Pending', E: 'Sent', I: 'Inactive', C: 'Canceled', R: 'Rejected', '1': 'Approved', '3': 'Generated', '01': 'Approved', '03': 'Generated' },
+  pt: { A: 'Aprovadas', G: 'Geradas', P: 'Pendentes', E: 'Enviadas', I: 'Inativas', C: 'Canceladas', R: 'Rejeitadas', '1': 'Aprovadas', '3': 'Geradas', '01': 'Aprovadas', '03': 'Geradas' },
+};
+
+const statusLabelPlural = (code: string, lang: Lang) =>
+  statusLabelsPlural[lang][normalizeStatusCode(code)] ?? statusLabel(code, lang);
+
 const statusColor = (code: string, desc?: string) => {
   const raw = [normalizeStatusCode(code), String(desc ?? '').trim().toUpperCase()].join(' ').trim();
   if (statusColors[raw]) return statusColors[raw];
@@ -355,7 +366,7 @@ export default function CotizacionesScreen() {
 
   const estados = useMemo(() => {
     const map = new Map<string, string>();
-    todas.forEach((c) => map.set(c.CodigoEstadoCotizacion, statusLabel(c.CodigoEstadoCotizacion, lang)));
+    todas.forEach((c) => map.set(c.CodigoEstadoCotizacion, statusLabelPlural(c.CodigoEstadoCotizacion, lang)));
     return [...map.entries()].map(([code, label]) => ({ code, label }));
   }, [todas, lang]);
 
@@ -397,6 +408,14 @@ export default function CotizacionesScreen() {
         onPolizas={() => router.push('/polizas' as any)}
       >
         <View style={styles.header}>
+          {!isDesktop && (
+            <IconButton
+              icon="arrow-left"
+              size={22}
+              onPress={() => (router.canGoBack() ? router.back() : router.push('/dashboard' as any))}
+              style={{ margin: 0 }}
+            />
+          )}
           <View style={{ flex: 1, gap: 2 }}>
             <Text variant="headlineSmall">{t.quotes}</Text>
             <Text variant="bodyMedium" style={{ color: colors.onSurfaceVariant }}>{t.subtitle}</Text>

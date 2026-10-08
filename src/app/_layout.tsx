@@ -1,3 +1,4 @@
+import { DownloadActionDialog } from '@/components/DownloadActionDialog';
 import { useSettingsStore } from '@/stores/settings';
 import { getTheme } from '@/theme';
 import {
@@ -45,6 +46,7 @@ export default function RootLayout() {
         <PaperProvider theme={paperTheme}>
           <ThemeProvider value={navTheme}>
             <Stack screenOptions={{ headerShown: false }} />
+            <DownloadActionDialog />
           </ThemeProvider>
         </PaperProvider>
       </QueryClientProvider>

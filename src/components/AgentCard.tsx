@@ -15,6 +15,15 @@ interface AgentCardProps {
 const getInitials = (name: string) =>
   name.trim().split(/\s+/).map((n) => n[0]).join('').slice(0, 2).toUpperCase();
 
+// Estados de agente en dbSeguros.EstadoAgente: 01 Habilitado, 02 Sin Contrato,
+// 03 Inactivo, 04 Bloqueado. Colores claros para leerse sobre el banner navy.
+const ESTADO_BADGE: Record<string, { color: string; icon: string }> = {
+  '01': { color: palette.success, icon: 'check-decagram' },
+  '02': { color: palette.warning, icon: 'file-document-outline' },
+  '03': { color: palette.slate[300], icon: 'pause-circle-outline' },
+  '04': { color: palette.danger, icon: 'lock-outline' },
+};
+
 function ContactItem({
   icon,
   label,
@@ -74,10 +83,22 @@ export function AgentCard({ data, t, avatarUri }: AgentCardProps) {
             </Text>
           </View>
           <View style={styles.badge}>
-            <Icon source="check-decagram" size={14} color={palette.gold[500]} />
-            <Text variant="labelSmall" style={{ color: palette.gold[300] }}>
-              {t.activeAgent ?? 'Agente activo'}
-            </Text>
+            {(() => {
+              const estado = ESTADO_BADGE[data.CodigoEstadoAgente ?? ''];
+              const color = estado?.color ?? palette.success;
+              const label =
+                data.CodigoEstadoAgente === '01'
+                  ? (t.activeAgent ?? 'Agente activo')
+                  : data.DescripcionEstadoAgente || (t.activeAgent ?? 'Agente activo');
+              return (
+                <>
+                  <Icon source={estado?.icon ?? 'check-decagram'} size={14} color={color} />
+                  <Text variant="labelSmall" style={{ color, fontFamily: 'Inter_600SemiBold' }}>
+                    {label}
+                  </Text>
+                </>
+              );
+            })()}
           </View>
         </View>
       </LinearGradient>

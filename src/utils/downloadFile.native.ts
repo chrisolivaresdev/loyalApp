@@ -1,17 +1,18 @@
 import { api } from '@/api/client';
+import { useDownloadDialogStore } from '@/stores/downloadDialog';
 import { useSettingsStore } from '@/stores/settings';
 import { arrayBufferToBase64 } from '@/utils/base64';
 import { File, Paths } from 'expo-file-system';
 import { StorageAccessFramework, writeAsStringAsync } from 'expo-file-system/legacy';
 import * as Sharing from 'expo-sharing';
-import { Alert, Linking, Platform } from 'react-native';
+import { Linking, Platform, ToastAndroid } from 'react-native';
 
 type GetData = () => Promise<ArrayBuffer>;
 
 const L = {
-  es: { share: 'Compartir', save: 'Guardar en el teléfono', cancel: 'Cancelar', saved: 'Archivo guardado' },
-  en: { share: 'Share', save: 'Save to phone', cancel: 'Cancel', saved: 'File saved' },
-  pt: { share: 'Partilhar', save: 'Guardar no telemóvel', cancel: 'Cancelar', saved: 'Arquivo guardado' },
+  es: { saved: 'Archivo guardado' },
+  en: { saved: 'File saved' },
+  pt: { saved: 'Arquivo guardado' },
 } as const;
 const labels = () => L[useSettingsStore.getState().lang] ?? L.es;
 
@@ -46,23 +47,25 @@ async function guardar(getData: GetData, fileName: string, mimeType?: string) {
   if (!perm.granted) return;
   const destUri = await StorageAccessFramework.createFileAsync(perm.directoryUri, fileName, mimeType ?? 'application/octet-stream');
   await writeAsStringAsync(destUri, arrayBufferToBase64(data), { encoding: 'base64' });
-  Alert.alert(labels().saved);
+  ToastAndroid.show(labels().saved, ToastAndroid.SHORT);
 }
 
 /**
- * Ofrece al usuario elegir entre compartir y guardar el archivo en el teléfono.
+ * Ofrece al usuario elegir entre compartir y guardar el archivo en el teléfono
+ * con un diálogo acorde al diseño de la app (DownloadActionDialog).
  * En iOS va directo a la hoja de compartir (incluye "Guardar en Archivos").
  */
-export function elegirAccionArchivo(getData: GetData, fileName: string, mimeType?: string): Promise<void> {
+export async function elegirAccionArchivo(getData: GetData, fileName: string, mimeType?: string): Promise<void> {
   if (Platform.OS !== 'android') return compartir(getData, fileName, mimeType);
-  const t = labels();
-  return new Promise((resolve, reject) => {
-    Alert.alert(fileName, undefined, [
-      { text: t.cancel, style: 'cancel', onPress: () => resolve() },
-      { text: t.share, onPress: () => { compartir(getData, fileName, mimeType).then(resolve, reject); } },
-      { text: t.save, onPress: () => { guardar(getData, fileName, mimeType).then(resolve, reject); } },
-    ]);
-  });
+  const dialog = useDownloadDialogStore.getState();
+  const action = await dialog.ask(fileName);
+  if (action !== 'share' && action !== 'save') return;
+  // el diálogo queda abierto con spinner hasta que termine la descarga/escritura
+  try {
+    await (action === 'share' ? compartir(getData, fileName, mimeType) : guardar(getData, fileName, mimeType));
+  } finally {
+    useDownloadDialogStore.getState().done();
+  }
 }
 
 /** Descarga un archivo protegido por sesión: pregunta compartir o guardar. */

@@ -1,14 +1,15 @@
-import { actualizarImagenPerfil, OPCION } from '@/api/agent';
+import { actualizarContactoPerfil, actualizarImagenPerfil, getDatosBasicos, OPCION } from '@/api/agent';
 import { AppShell, Lang } from '@/components/AppShell';
 import { SelectField } from '@/components/SelectField';
 import { useLogout } from '@/hooks/useAuth';
 import { IMAGEN_PERFIL_KEY, useAvatarImagen } from '@/hooks/useAvatar';
+import { usePaises } from '@/hooks/useCotizaciones';
 import { useRequirePermiso } from '@/hooks/usePermisos';
 import { useResponsive } from '@/hooks/useResponsive';
 import { useAuthStore } from '@/stores/auth';
 import { useSettingsStore } from '@/stores/settings';
 import { palette } from '@/theme';
-import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import * as ImageManipulator from 'expo-image-manipulator';
 import * as ImagePicker from 'expo-image-picker';
 import { useRouter } from 'expo-router';
@@ -26,11 +27,13 @@ const labels: Record<Lang, { [key: string]: string }> = {
     role: 'Rol',
     email: 'Correo electrónico',
     phone: 'Teléfono',
+    cellphone: 'Celular',
     country: 'País',
     image: 'JPG, PNG o WebP — máx. 2 MB',
     changeImage: 'Cambiar imagen',
     save: 'Guardar cambios',
     saved: 'Perfil actualizado',
+    saveError: 'No se pudieron guardar los cambios',
     required: 'Requerido',
     back: 'Volver',
     personalInfo: 'Información personal',
@@ -44,11 +47,13 @@ const labels: Record<Lang, { [key: string]: string }> = {
     role: 'Role',
     email: 'Email',
     phone: 'Phone',
+    cellphone: 'Mobile',
     country: 'Country',
     image: 'JPG, PNG or WebP — max. 2 MB',
     changeImage: 'Change image',
     save: 'Save changes',
     saved: 'Profile updated',
+    saveError: 'Changes could not be saved',
     required: 'Required',
     back: 'Back',
     personalInfo: 'Personal information',
@@ -62,11 +67,13 @@ const labels: Record<Lang, { [key: string]: string }> = {
     role: 'Função',
     email: 'E-mail',
     phone: 'Telefone',
+    cellphone: 'Celular',
     country: 'País',
     image: 'JPG, PNG ou WebP — máx. 2 MB',
     changeImage: 'Alterar imagem',
     save: 'Salvar alterações',
     saved: 'Perfil atualizado',
+    saveError: 'Não foi possível salvar as alterações',
     required: 'Obrigatório',
     back: 'Voltar',
     personalInfo: 'Informações pessoais',
@@ -95,60 +102,6 @@ const resizeImageWeb = (uri: string, size: number): Promise<string> =>
     img.src = uri;
   });
 
-const COUNTRIES: Record<Lang, { value: string; label: string }[]> = {
-  es: [
-    { value: 'US', label: 'Estados Unidos' },
-    { value: 'VE', label: 'Venezuela' },
-    { value: 'CO', label: 'Colombia' },
-    { value: 'MX', label: 'México' },
-    { value: 'AR', label: 'Argentina' },
-    { value: 'CL', label: 'Chile' },
-    { value: 'PE', label: 'Perú' },
-    { value: 'DO', label: 'República Dominicana' },
-    { value: 'PA', label: 'Panamá' },
-    { value: 'CR', label: 'Costa Rica' },
-    { value: 'GT', label: 'Guatemala' },
-    { value: 'EC', label: 'Ecuador' },
-    { value: 'BO', label: 'Bolivia' },
-    { value: 'PY', label: 'Paraguay' },
-    { value: 'UY', label: 'Uruguay' },
-  ],
-  en: [
-    { value: 'US', label: 'United States' },
-    { value: 'VE', label: 'Venezuela' },
-    { value: 'CO', label: 'Colombia' },
-    { value: 'MX', label: 'Mexico' },
-    { value: 'AR', label: 'Argentina' },
-    { value: 'CL', label: 'Chile' },
-    { value: 'PE', label: 'Peru' },
-    { value: 'DO', label: 'Dominican Republic' },
-    { value: 'PA', label: 'Panama' },
-    { value: 'CR', label: 'Costa Rica' },
-    { value: 'GT', label: 'Guatemala' },
-    { value: 'EC', label: 'Ecuador' },
-    { value: 'BO', label: 'Bolivia' },
-    { value: 'PY', label: 'Paraguay' },
-    { value: 'UY', label: 'Uruguay' },
-  ],
-  pt: [
-    { value: 'US', label: 'Estados Unidos' },
-    { value: 'VE', label: 'Venezuela' },
-    { value: 'CO', label: 'Colômbia' },
-    { value: 'MX', label: 'México' },
-    { value: 'AR', label: 'Argentina' },
-    { value: 'CL', label: 'Chile' },
-    { value: 'PE', label: 'Peru' },
-    { value: 'DO', label: 'República Dominicana' },
-    { value: 'PA', label: 'Panamá' },
-    { value: 'CR', label: 'Costa Rica' },
-    { value: 'GT', label: 'Guatemala' },
-    { value: 'EC', label: 'Equador' },
-    { value: 'BO', label: 'Bolívia' },
-    { value: 'PY', label: 'Paraguai' },
-    { value: 'UY', label: 'Uruguai' },
-  ],
-};
-
 export default function PerfilScreen() {
   const router = useRouter();
   const allowed = useRequirePermiso(OPCION.perfil);
@@ -162,8 +115,9 @@ export default function PerfilScreen() {
   const setLang = useSettingsStore((s) => s.setLang);
   const t = labels[lang];
 
-  const [email, setEmail] = useState(user?.DireccionEmail ?? '');
+  const [email, setEmail] = useState('');
   const [phone, setPhone] = useState('');
+  const [celular, setCelular] = useState('');
   const [country, setCountry] = useState('');
   // Foto: hook compartido (menú, dashboard y perfil usan el mismo origen/cache)
   const fetchedAvatar = useAvatarImagen();
@@ -172,10 +126,22 @@ export default function PerfilScreen() {
   const imageUrl = uploaded ?? fetchedAvatar ?? '';
   const [snack, setSnack] = useState(false);
   const [imgError, setImgError] = useState('');
+  const [saveError, setSaveError] = useState('');
+
+  const { data: basico } = useQuery({ queryKey: ['agente-basico'], queryFn: getDatosBasicos });
+  const { data: paises } = usePaises();
+  const paisOptions = useMemo(
+    () => (paises ?? []).map((p) => ({ value: String(p.CodigoPais), label: (p.DescripcionPais ?? '').trim() })),
+    [paises],
+  );
 
   useEffect(() => {
-    if (user) setEmail(user.DireccionEmail ?? '');
-  }, [user]);
+    if (!basico) return;
+    setEmail((basico.Email ?? '').trim());
+    setPhone((basico.Telefono ?? '').trim());
+    setCelular((basico.Celular ?? '').trim());
+    setCountry(basico.CodigoPais ? String(basico.CodigoPais) : '');
+  }, [basico]);
 
   const uploadImg = useMutation({
     mutationFn: actualizarImagenPerfil,
@@ -217,16 +183,29 @@ export default function PerfilScreen() {
     }
   };
 
+  const saveContacto = useMutation({
+    mutationFn: actualizarContactoPerfil,
+    onSuccess: (d) => {
+      if (user) setUser({ ...user, DireccionEmail: (d.Email ?? '').trim() || email });
+      queryClient.invalidateQueries({ queryKey: ['agente-basico'] });
+      queryClient.invalidateQueries({ queryKey: ['dashboard'] });
+      setSnack(true);
+    },
+    onError: (e: any) => setSaveError(e?.response?.data?.message || t.saveError),
+  });
+
   const onSave = () => {
     if (!user) return;
-    setUser({
-      ...user,
-      DireccionEmail: email,
+    setSaveError('');
+    saveContacto.mutate({
+      correo: email || undefined,
+      telefono: phone,
+      celular,
+      codigoPais: country ? Number(country) : undefined,
     });
-    setSnack(true);
   };
 
-  const isValidEmail = email.includes('@') && email.includes('.');
+  const isValidEmail = !email || (email.includes('@') && email.includes('.'));
 
   const avatar = useMemo(() => {
     if (imageUrl) {
@@ -334,6 +313,14 @@ export default function PerfilScreen() {
               )}
               <TextInput
                 mode="outlined"
+                label={t.cellphone}
+                value={celular}
+                onChangeText={setCelular}
+                keyboardType="phone-pad"
+                outlineStyle={{ borderRadius: roundness - 4 }}
+              />
+              <TextInput
+                mode="outlined"
                 label={t.phone}
                 value={phone}
                 onChangeText={setPhone}
@@ -344,9 +331,12 @@ export default function PerfilScreen() {
                 label={t.country}
                 value={country}
                 onChange={setCountry}
-                options={COUNTRIES[lang]}
+                options={paisOptions}
                 placeholder={t.country}
               />
+              {!!saveError && (
+                <HelperText type="error" visible>{saveError}</HelperText>
+              )}
             </Card.Content>
           </Card>
 
@@ -355,7 +345,8 @@ export default function PerfilScreen() {
               mode="contained"
               icon="content-save"
               onPress={onSave}
-              disabled={!isValidEmail}
+              disabled={!isValidEmail || saveContacto.isPending}
+              loading={saveContacto.isPending}
               style={{ borderRadius: roundness - 4 }}
             >
               {t.save}

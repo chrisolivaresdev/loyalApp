@@ -15,15 +15,15 @@ import { useRouter } from 'expo-router';
 import { useMemo, useState } from 'react';
 import { StyleSheet, View } from 'react-native';
 import {
-  ActivityIndicator,
-  Button,
-  Divider,
-  Icon,
-  SegmentedButtons,
-  Snackbar,
-  Text,
-  TouchableRipple,
-  useTheme
+    ActivityIndicator,
+    Button,
+    Divider,
+    Icon,
+    SegmentedButtons,
+    Snackbar,
+    Text,
+    TouchableRipple,
+    useTheme
 } from 'react-native-paper';
 
 const labels = {
@@ -33,7 +33,7 @@ const labels = {
     lastPayment: 'Último pago',
     cycle: 'Ciclo',
     detail: 'Detalle',
-    rates: '% por producto',
+    rates: 'Por producto',
     total: 'Total',
     newBusiness: 'Nuevos negocios',
     renewals: 'Renovaciones',
@@ -72,7 +72,7 @@ const labels = {
     lastPayment: 'Last payment',
     cycle: 'Cycle',
     detail: 'Detail',
-    rates: '% by product',
+    rates: 'By product',
     total: 'Total',
     newBusiness: 'New business',
     renewals: 'Renewals',
@@ -111,7 +111,7 @@ const labels = {
     lastPayment: 'Último pagamento',
     cycle: 'Ciclo',
     detail: 'Detalhe',
-    rates: '% por produto',
+    rates: 'Por produto',
     total: 'Total',
     newBusiness: 'Novos negócios',
     renewals: 'Renovações',
@@ -298,9 +298,21 @@ export default function ComisionesScreen() {
       {/* Cards de resumen */}
       <View style={styles.summaryRow}>
         {summaryCards.map((s) => (
-          <View key={s.label} style={[styles.summaryCard, { backgroundColor: colors.surface, borderColor: `${s.color}55`, borderRadius: roundness }]}>
-            <Text variant="labelMedium" style={{ color: colors.onSurfaceVariant, textAlign: 'center' }} numberOfLines={1}>{s.label}</Text>
-            <Text variant="titleLarge" style={{ color: s.color, fontFamily: 'Inter_600SemiBold', textAlign: 'center' }} numberOfLines={1}>
+          <View
+            key={s.label}
+            style={[
+              styles.summaryCard,
+              { flexBasis: isDesktop ? 140 : '47%', backgroundColor: colors.surface, borderColor: `${s.color}55`, borderRadius: roundness },
+            ]}
+          >
+            <Text variant="labelSmall" style={{ color: colors.onSurfaceVariant, textAlign: 'center' }} numberOfLines={1}>{s.label}</Text>
+            <Text
+              variant="titleSmall"
+              style={{ color: s.color, fontFamily: 'Inter_600SemiBold', textAlign: 'center' }}
+              numberOfLines={1}
+              adjustsFontSizeToFit
+              minimumFontScale={0.6}
+            >
               {formatCurrency(s.value, lang)}
             </Text>
           </View>

@@ -61,6 +61,13 @@ const labels = {
     denied: 'Denegada',
     voided: 'Anulada',
     postponed: 'Pospuesta',
+    generatedP: 'Generadas',
+    inProgressP: 'En proceso de registro',
+    pendingUwP: 'Pendientes UW',
+    approvedP: 'Aprobadas',
+    deniedP: 'Denegadas',
+    voidedP: 'Anuladas',
+    postponedP: 'Pospuestas',
     exportExcel: 'Excel',
     exportPdf: 'PDF',
     exporting: 'Exportando…',
@@ -103,6 +110,13 @@ const labels = {
     denied: 'Denied',
     voided: 'Voided',
     postponed: 'Postponed',
+    generatedP: 'Generated',
+    inProgressP: 'In registration',
+    pendingUwP: 'Pending UW',
+    approvedP: 'Approved',
+    deniedP: 'Denied',
+    voidedP: 'Voided',
+    postponedP: 'Postponed',
   },
   pt: {
     title: 'Solicitações',
@@ -139,6 +153,13 @@ const labels = {
     denied: 'Negada',
     voided: 'Anulada',
     postponed: 'Postergada',
+    generatedP: 'Geradas',
+    inProgressP: 'Em registro',
+    pendingUwP: 'Pendentes UW',
+    approvedP: 'Aprovadas',
+    deniedP: 'Negadas',
+    voidedP: 'Anuladas',
+    postponedP: 'Postergadas',
     exportExcel: 'Excel',
     exportPdf: 'PDF',
     exporting: 'Exportando…',
@@ -147,14 +168,14 @@ const labels = {
 
 type T = (typeof labels)['es'];
 
-const ESTADOS: { code: string; labelKey: keyof T; countKey: 'Generada' | 'Registro' | 'Evaluacion' | 'Aprobada' | 'Denegada' | 'Anulada' | 'Pospuesta' }[] = [
-  { code: '01', labelKey: 'generated', countKey: 'Generada' },
-  { code: '02', labelKey: 'inProgress', countKey: 'Registro' },
-  { code: '03', labelKey: 'pendingUw', countKey: 'Evaluacion' },
-  { code: '04', labelKey: 'approved', countKey: 'Aprobada' },
-  { code: '05', labelKey: 'denied', countKey: 'Denegada' },
-  { code: '06', labelKey: 'voided', countKey: 'Anulada' },
-  { code: '07', labelKey: 'postponed', countKey: 'Pospuesta' },
+const ESTADOS: { code: string; labelKey: keyof T; pluralKey: keyof T; countKey: 'Generada' | 'Registro' | 'Evaluacion' | 'Aprobada' | 'Denegada' | 'Anulada' | 'Pospuesta' }[] = [
+  { code: '01', labelKey: 'generated', pluralKey: 'generatedP', countKey: 'Generada' },
+  { code: '02', labelKey: 'inProgress', pluralKey: 'inProgressP', countKey: 'Registro' },
+  { code: '03', labelKey: 'pendingUw', pluralKey: 'pendingUwP', countKey: 'Evaluacion' },
+  { code: '04', labelKey: 'approved', pluralKey: 'approvedP', countKey: 'Aprobada' },
+  { code: '05', labelKey: 'denied', pluralKey: 'deniedP', countKey: 'Denegada' },
+  { code: '06', labelKey: 'voided', pluralKey: 'voidedP', countKey: 'Anulada' },
+  { code: '07', labelKey: 'postponed', pluralKey: 'postponedP', countKey: 'Pospuesta' },
 ];
 
 const estadoColor: Record<string, string> = {
@@ -423,7 +444,7 @@ export default function SolicitudesScreen() {
               style={active ? { backgroundColor: `${color}1A` } : undefined}
               textStyle={active ? { color } : undefined}
             >
-              {`${t[e.labelKey] as string} (${count})`}
+              {`${t[e.pluralKey] as string} (${count})`}
             </Chip>
           );
         })}

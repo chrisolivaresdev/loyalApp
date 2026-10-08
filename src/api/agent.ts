@@ -39,6 +39,8 @@ export interface DashboardResponse {
   DescripcionCicloComisiones?: string;
   MontoPagadoComisiones?: number;
   FechaUltimaSolicitud?: string | null;
+  CodigoEstadoAgente?: string;
+  DescripcionEstadoAgente?: string;
 }
 
 export const getDashboard = (params: GetDashboardParams) =>
@@ -46,8 +48,32 @@ export const getDashboard = (params: GetDashboardParams) =>
     .get<DashboardResponse>('/agentes/dashboard', { params })
     .then((r) => r.data);
 
+export interface DatosBasicosAgente {
+  CodigoAgente: number;
+  NombreAgente: string;
+  NombreCompleto: string;
+  Direccion: string;
+  Celular: string;
+  Telefono: string;
+  Email: string;
+  FechaNacimiento: string;
+  Objetivo: number;
+  CodigoPais?: number;
+  DescripcionPais?: string;
+}
+
+export interface ContactoAgenteUpdate {
+  correo?: string;
+  telefono?: string;
+  celular?: string;
+  codigoPais?: number;
+}
+
 export const getDatosBasicos = () =>
-  api.get('/agentes/basico').then((r) => r.data);
+  api.get<DatosBasicosAgente>('/agentes/basico').then((r) => r.data);
+
+export const actualizarContactoPerfil = (body: ContactoAgenteUpdate) =>
+  api.put<DatosBasicosAgente>('/agentes/perfil/contacto', body).then((r) => r.data);
 
 export interface GetChartParams {
   fechaInicio: string;

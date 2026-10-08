@@ -13,15 +13,15 @@ import { useRouter } from 'expo-router';
 import { useMemo, useState } from 'react';
 import { ScrollView, StyleSheet, TouchableOpacity, View } from 'react-native';
 import {
-  ActivityIndicator,
-  Avatar,
-  Button,
-  Chip,
-  Icon,
-  Searchbar,
-  Text,
-  TouchableRipple,
-  useTheme,
+    ActivityIndicator,
+    Avatar,
+    Button,
+    Chip,
+    Icon,
+    Searchbar,
+    Text,
+    TouchableRipple,
+    useTheme,
 } from 'react-native-paper';
 
 const labels = {
@@ -237,8 +237,11 @@ export default function AgentesScreen() {
 
   const goProfile = (a: AgentePerfilItem) => router.push(`/agentes/${a.codigoAgente}` as any);
 
-  const estadoColor = (estado: string) =>
-    /inactiv/i.test(estado) ? colors.error : palette.success;
+  // Estados: 01 Habilitado, 02 Sin Contrato, 03 Inactivo, 04 Bloqueado
+  const estadoColor = (a: AgentePerfilItem) =>
+    ({ '01': palette.success, '02': palette.warning, '03': palette.slate[500], '04': colors.error } as Record<string, string>)[
+      a.codigoEstadoAgente
+    ] ?? (/inactiv|bloque/i.test(a.estadoAgente) ? colors.error : palette.success);
 
   if (!allowed) return null;
 
@@ -355,8 +358,8 @@ export default function AgentesScreen() {
                       </Text>
                     </View>
                     <View style={styles.cStatus}>
-                      <View style={[styles.statusChip, { backgroundColor: `${estadoColor(a.estadoAgente)}1A` }]}>
-                        <Text variant="labelSmall" style={{ color: estadoColor(a.estadoAgente) }}>{a.estadoAgente}</Text>
+                      <View style={[styles.statusChip, { backgroundColor: `${estadoColor(a)}1A` }]}>
+                        <Text variant="labelSmall" style={{ color: estadoColor(a) }}>{a.estadoAgente}</Text>
                       </View>
                     </View>
                     <Text variant="bodySmall" style={styles.cNum}>NN {pct(a.comisionAgente)}{'\n'}RN {pct(a.comisionRenovacion)}</Text>
@@ -407,8 +410,8 @@ export default function AgentesScreen() {
                     </Text>
                   </View>
                 </View>
-                <View style={[styles.statusChip, { backgroundColor: `${estadoColor(a.estadoAgente)}1A` }]}>
-                  <Text variant="labelSmall" style={{ color: estadoColor(a.estadoAgente) }}>{a.estadoAgente}</Text>
+                <View style={[styles.statusChip, { backgroundColor: `${estadoColor(a)}1A` }]}>
+                  <Text variant="labelSmall" style={{ color: estadoColor(a) }}>{a.estadoAgente}</Text>
                 </View>
                 <Icon source="chevron-right" size={20} color={colors.onSurfaceVariant} />
               </View>

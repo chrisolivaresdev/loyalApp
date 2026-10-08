@@ -203,7 +203,7 @@ function PolizaCard({ p, t, lang, onDetail, showDetail }: { p: PolizaActiva; t: 
     <View style={[styles.card, { backgroundColor: colors.surface, borderColor: colors.outlineVariant, borderRadius: roundness + 2 }]}>
       <View style={styles.cardTop}>
         <View style={[styles.codeBadge, { backgroundColor: palette.indigo[50] }]}>
-          <Text variant="labelLarge" style={{ color: palette.indigo[600] }}>{p.numeroPoliza.trim() || `#${p.codigoCertificado}`}</Text>
+          <Text variant="labelLarge" style={{ color: palette.indigo[600] }} numberOfLines={1}>{p.numeroPoliza.trim() || `#${p.codigoCertificado}`}</Text>
         </View>
         <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
           {showDetail && <IconButton icon="eye-outline" size={18} onPress={onDetail} style={{ margin: 0 }} />}
@@ -490,7 +490,7 @@ export default function PolizasScreen() {
 }
 
 const styles = StyleSheet.create({
-  header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 12 },
+  header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap' },
   toolbar: { borderWidth: 1, padding: 10, gap: 10 },
   toolbarRow: { flexDirection: 'row', alignItems: 'center', gap: 8, flexWrap: 'wrap' },
   search: { flex: 1, minWidth: 180 },
@@ -500,12 +500,12 @@ const styles = StyleSheet.create({
   emptyIcon: { width: 64, height: 64, borderRadius: 32, alignItems: 'center', justifyContent: 'center' },
   list: { gap: 12 },
   card: { borderWidth: 1, padding: 16, gap: 6 },
-  cardTop: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 8 },
-  cardBottom: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
-  codeBadge: { borderRadius: 8, paddingHorizontal: 10, paddingVertical: 4 },
-  metaRow: { flexDirection: 'row', alignItems: 'center', gap: 6 },
+  cardTop: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 8, flexWrap: 'wrap' },
+  cardBottom: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 8 },
+  codeBadge: { borderRadius: 8, paddingHorizontal: 10, paddingVertical: 4, flexShrink: 1 },
+  metaRow: { flexDirection: 'row', alignItems: 'center', gap: 6, flexWrap: 'wrap' },
   metaItem: { flexDirection: 'row', alignItems: 'center', gap: 6 },
-  status: { flexDirection: 'row', alignItems: 'center', gap: 6, borderRadius: 999, paddingHorizontal: 10, paddingVertical: 5 },
+  status: { flexDirection: 'row', alignItems: 'center', gap: 6, borderRadius: 999, paddingHorizontal: 10, paddingVertical: 5, flexShrink: 1 },
   statusDot: { width: 6, height: 6, borderRadius: 3, backgroundColor: '#FFFFFF' },
   table: { borderWidth: 1, overflow: 'hidden' },
   tr: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingHorizontal: 16, paddingVertical: 12, borderBottomWidth: 1 },
