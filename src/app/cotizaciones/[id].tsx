@@ -22,7 +22,6 @@ import {
     Dialog,
     Divider,
     Icon,
-    IconButton,
     Portal,
     SegmentedButtons,
     Snackbar,
@@ -497,9 +496,9 @@ export default function CotizacionDetalleScreen() {
       onCotizaciones={() => router.push('/cotizaciones' as any)}
       onSolicitudes={() => router.push('/solicitudes' as any)}
       onPolizas={() => router.push('/polizas' as any)}
+      onBack={() => (router.canGoBack() ? router.back() : router.replace('/cotizaciones' as any))}
     >
       <View style={styles.header}>
-        <IconButton icon="arrow-left" size={22} onPress={() => router.back()} />
         <View style={{ flex: 1, minWidth: 180 }}>
           <Text variant="headlineSmall">{t.quote} #{id}</Text>
           {!!data?.NombreSolicitante && (

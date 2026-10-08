@@ -14,7 +14,7 @@ import { useQuery } from '@tanstack/react-query';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useEffect, useMemo, useState } from 'react';
 import { StyleSheet, View } from 'react-native';
-import { Button, Checkbox, Icon, IconButton, Portal, Snackbar, Text, TextInput, useTheme } from 'react-native-paper';
+import { Button, Checkbox, Icon, Portal, Snackbar, Text, TextInput, useTheme } from 'react-native-paper';
 
 const labels: Record<Lang, { [key: string]: string }> = {
   es: {
@@ -380,9 +380,9 @@ export default function NuevaCotizacionScreen() {
         onCotizaciones={goBack}
         onSolicitudes={() => router.push('/solicitudes' as any)}
         onPolizas={() => router.push('/polizas' as any)}
+        onBack={goBack}
       >
         <View style={styles.titleRow}>
-          <IconButton icon="arrow-left" onPress={goBack} size={22} />
           <Text variant="titleMedium" style={styles.titleText}>{(editing ? t.editTitle : t.title).toUpperCase()}{editing ? ` #${editId}` : ''}</Text>
         </View>
 

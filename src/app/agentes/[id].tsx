@@ -282,12 +282,14 @@ export default function PerfilAgenteScreen() {
       <View style={{ gap: 16 }}>
         {/* Breadcrumb jerarquía */}
         <View style={styles.breadcrumb}>
-          <TouchableRipple onPress={() => router.push('/agentes' as any)} borderless style={{ borderRadius: 6 }}>
-            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
-              <Icon source="arrow-left" size={16} color={palette.indigo[600]} />
-              <Text variant="labelLarge" style={{ color: palette.indigo[600] }}>{t.back}</Text>
-            </View>
-          </TouchableRipple>
+          {isDesktop && (
+            <TouchableRipple onPress={() => router.push('/agentes' as any)} borderless style={{ borderRadius: 6 }}>
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+                <Icon source="arrow-left" size={16} color={palette.indigo[600]} />
+                <Text variant="labelLarge" style={{ color: palette.indigo[600] }}>{t.back}</Text>
+              </View>
+            </TouchableRipple>
+          )}
           <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6 }}>
             {data.navegacion.map((n, i) => (
               <Chip
@@ -518,6 +520,7 @@ export default function PerfilAgenteScreen() {
       onSolicitudes={() => router.push('/solicitudes' as any)}
       onPolizas={() => router.push('/polizas' as any)}
       onAgentes={() => router.push('/agentes' as any)}
+      onBack={() => (router.canGoBack() ? router.back() : router.push('/agentes' as any))}
     >
       {renderBody()}
     </AppShell>

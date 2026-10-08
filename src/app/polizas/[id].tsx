@@ -577,9 +577,9 @@ export default function PolizaDetalleScreen() {
       onComisiones={() => router.push('/comisiones' as any)}
       onAgentes={() => router.push('/agentes' as any)}
       onPersonal={() => router.push('/personal' as any)}
+      onBack={() => (router.canGoBack() ? router.back() : router.replace('/polizas' as any))}
     >
       <View style={styles.headerRow}>
-        <IconButton icon="arrow-left" size={22} onPress={() => router.back()} style={{ margin: 0 }} />
         <Text variant="headlineSmall" style={{ flex: 1 }}>{t.title}</Text>
       </View>
 

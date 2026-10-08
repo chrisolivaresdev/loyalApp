@@ -67,6 +67,8 @@ interface AppShellProps {
   onPersonal?: () => void;
   onAgentes?: () => void;
   onRecursos?: () => void;
+  /** Botón de regresar en el header (solo mobile). */
+  onBack?: () => void;
   labels?: Partial<MenuLabels>;
   children: ReactNode;
 }
@@ -540,7 +542,7 @@ function MobileNavMenu({
 }
 
 function MobileShell({
-  title, userName, lang, onLangChange, onHome, onProfile, onLogout, onCotizaciones, onSolicitudes, onPolizas, onComisiones, onPersonal, onAgentes, onRecursos, labels, children,
+  title, userName, lang, onLangChange, onHome, onProfile, onLogout, onCotizaciones, onSolicitudes, onPolizas, onComisiones, onPersonal, onAgentes, onRecursos, onBack, labels, children,
 }: ResolvedShellProps) {
   const activeLang = useSettingsStore((s) => s.lang);
   const { colors } = useTheme();
@@ -564,7 +566,19 @@ function MobileShell({
         style={[styles.mobileHeader, { paddingTop: insets.top + 12 }]}
       >
         <View style={styles.mobileTopRow}>
-          <Brand compact lang={activeLang} />
+          <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+            {onBack && (
+              <IconButton
+                icon="arrow-left"
+                iconColor="#FFFFFF"
+                size={22}
+                onPress={onBack}
+                accessibilityLabel="Back"
+                style={{ marginLeft: -12 }}
+              />
+            )}
+            <Brand compact lang={activeLang} />
+          </View>
           <View style={styles.mobileActions}>
             <MobileNavMenu onHome={onHome} onCotizaciones={onCotizaciones} onSolicitudes={onSolicitudes} onPolizas={onPolizas} onComisiones={onComisiones} onPersonal={onPersonal} onAgentes={onAgentes} onRecursos={onRecursos} onProfile={onProfile} onLogout={onLogout} labels={labels} lang={lang} />
             <ThemeMenu color="#FFFFFF" labels={labels} />

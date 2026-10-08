@@ -319,14 +319,9 @@ export default function SolicitudDetalleScreen() {
       onCotizaciones={() => router.push('/cotizaciones' as any)}
       onSolicitudes={() => router.push('/solicitudes' as any)}
       onPolizas={() => router.push('/polizas' as any)}
+      onBack={() => router.push('/solicitudes' as any)}
     >
       <View style={styles.header}>
-        <TouchableRipple onPress={() => router.push('/solicitudes' as any)} borderless style={{ borderRadius: roundness - 4 }}>
-          <View style={styles.backBtn}>
-            <Icon source="arrow-left" size={18} color={colors.onSurfaceVariant} />
-            <Text variant="labelLarge" style={{ color: colors.onSurfaceVariant }}>{t.back}</Text>
-          </View>
-        </TouchableRipple>
         <Text variant="headlineSmall" style={{ flex: 1 }}>{s?.NombreCompleto ?? t.title}</Text>
       </View>
 

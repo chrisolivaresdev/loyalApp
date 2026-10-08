@@ -20,7 +20,6 @@ import {
     Divider,
     FAB,
     Icon,
-    IconButton,
     Searchbar,
     Text,
     TouchableRipple,
@@ -406,16 +405,9 @@ export default function CotizacionesScreen() {
         onCotizaciones={() => {}}
         onSolicitudes={() => router.push('/solicitudes' as any)}
         onPolizas={() => router.push('/polizas' as any)}
+        onBack={() => (router.canGoBack() ? router.back() : router.push('/dashboard' as any))}
       >
         <View style={styles.header}>
-          {!isDesktop && (
-            <IconButton
-              icon="arrow-left"
-              size={22}
-              onPress={() => (router.canGoBack() ? router.back() : router.push('/dashboard' as any))}
-              style={{ margin: 0 }}
-            />
-          )}
           <View style={{ flex: 1, gap: 2 }}>
             <Text variant="headlineSmall">{t.quotes}</Text>
             <Text variant="bodyMedium" style={{ color: colors.onSurfaceVariant }}>{t.subtitle}</Text>
@@ -561,6 +553,8 @@ export default function CotizacionesScreen() {
             </View>
           </View>
         )}
+        {/* Espacio para que el FAB no tape el paginador al llegar al final */}
+        {!isDesktop && canCreate && <View style={{ height: 72 }} />}
       </AppShell>
 
       {!isDesktop && canCreate && (

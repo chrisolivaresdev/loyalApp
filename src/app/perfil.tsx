@@ -236,6 +236,7 @@ export default function PerfilScreen() {
       onSolicitudes={() => router.push('/solicitudes' as any)}
       onPolizas={() => router.push('/polizas' as any)}
       onLogout={() => logout.mutate()}
+      onBack={() => (router.canGoBack() ? router.back() : router.push('/dashboard' as any))}
     >
       <KeyboardAvoidingView
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}

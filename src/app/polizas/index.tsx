@@ -348,6 +348,7 @@ export default function PolizasScreen() {
       onCotizaciones={() => router.push('/cotizaciones' as any)}
       onSolicitudes={() => router.push('/solicitudes' as any)}
       onPolizas={() => {}}
+      onBack={() => (router.canGoBack() ? router.back() : router.push('/dashboard' as any))}
     >
       <View style={styles.header}>
         <View style={{ flex: 1, gap: 2 }}>

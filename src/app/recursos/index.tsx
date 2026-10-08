@@ -13,13 +13,13 @@ import { useRouter } from 'expo-router';
 import { useState } from 'react';
 import { Linking, Platform, StyleSheet, View } from 'react-native';
 import {
-  ActivityIndicator,
-  Button,
-  Icon,
-  Searchbar,
-  Text,
-  TouchableRipple,
-  useTheme,
+    ActivityIndicator,
+    Button,
+    Icon,
+    Searchbar,
+    Text,
+    TouchableRipple,
+    useTheme,
 } from 'react-native-paper';
 
 const labels = {
@@ -208,6 +208,7 @@ export default function RecursosScreen() {
       onComisiones={() => router.push('/comisiones' as any)}
       onAgentes={() => router.push('/agentes' as any)}
       onPersonal={() => router.push('/personal' as any)}
+      onBack={() => (router.canGoBack() ? router.back() : router.push('/dashboard' as any))}
     >
       <View style={styles.header}>
         <View style={{ flex: 1, gap: 2 }}>

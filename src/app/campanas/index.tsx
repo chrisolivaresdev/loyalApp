@@ -216,6 +216,7 @@ export default function CampanasScreen() {
       onComisiones={() => router.push('/comisiones' as any)}
       onAgentes={() => router.push('/agentes' as any)}
       onPersonal={() => router.push('/personal' as any)}
+      onBack={() => (router.canGoBack() ? router.back() : router.push('/dashboard' as any))}
     >
       {body}
       <CampanaExpress t={t} lang={lang} />

@@ -16,20 +16,20 @@ import { useRouter } from 'expo-router';
 import { useEffect, useMemo, useState } from 'react';
 import { ScrollView, StyleSheet, View } from 'react-native';
 import {
-  ActivityIndicator,
-  Avatar,
-  Button,
-  Checkbox,
-  Dialog,
-  Icon,
-  IconButton,
-  Menu,
-  Portal,
-  Searchbar,
-  Snackbar,
-  Text,
-  TextInput,
-  useTheme
+    ActivityIndicator,
+    Avatar,
+    Button,
+    Checkbox,
+    Dialog,
+    Icon,
+    IconButton,
+    Menu,
+    Portal,
+    Searchbar,
+    Snackbar,
+    Text,
+    TextInput,
+    useTheme
 } from 'react-native-paper';
 
 const labels = {
@@ -717,6 +717,7 @@ export default function PersonalScreen() {
       onSolicitudes={() => router.push('/solicitudes' as any)}
       onPolizas={() => router.push('/polizas' as any)}
       onPersonal={() => {}}
+      onBack={() => (router.canGoBack() ? router.back() : router.push('/dashboard' as any))}
     >
       <View style={styles.header}>
         <View style={{ flex: 1, gap: 2 }}>

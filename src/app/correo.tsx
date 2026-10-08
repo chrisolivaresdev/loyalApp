@@ -97,6 +97,7 @@ export default function CorreoScreen() {
       onComisiones={() => router.push('/comisiones' as any)}
       onAgentes={() => router.push('/agentes' as any)}
       onPersonal={() => router.push('/personal' as any)}
+      onBack={() => (router.canGoBack() ? router.back() : router.push('/dashboard' as any))}
     >
       <ScrollView contentContainerStyle={[styles.scroll, !isDesktop && { paddingHorizontal: 0 }]}>
         <View style={[styles.card, { backgroundColor: colors.surface, borderColor: colors.outlineVariant, borderRadius: roundness + 2 }]}>

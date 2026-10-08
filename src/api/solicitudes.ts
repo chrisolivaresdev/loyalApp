@@ -42,10 +42,11 @@ export async function getSolicitudes(
   codigoEstado: string,
   page = 1,
   limit = 25,
+  busqueda?: string,
 ): Promise<ListadoSolicitudesResponse> {
   const { data } = await api.get<ListadoSolicitudesResponse>(
     `/solicitudes/listado-estado/${codigoEstado}`,
-    { params: { page, limit } },
+    { params: { page, limit, busqueda: busqueda || undefined } },
   );
   return data;
 }

@@ -11,7 +11,7 @@ const L = {
 
 /** Diálogo con el diseño de la app para elegir qué hacer con un archivo descargado. */
 export function DownloadActionDialog() {
-  const { colors } = useTheme();
+  const { colors, roundness } = useTheme();
   const fileName = useDownloadDialogStore((s) => s.fileName);
   const busy = useDownloadDialogStore((s) => s.busy);
   const answer = useDownloadDialogStore((s) => s.answer);
@@ -19,7 +19,12 @@ export function DownloadActionDialog() {
 
   return (
     <Portal>
-      <Dialog visible={fileName !== null} onDismiss={() => answer(null)} dismissable={!busy}>
+      <Dialog
+        visible={fileName !== null}
+        onDismiss={() => answer(null)}
+        dismissable={!busy}
+        style={{ borderRadius: roundness }}
+      >
         <Dialog.Title>{t.title}</Dialog.Title>
         <Dialog.Content>
           {!!fileName && (

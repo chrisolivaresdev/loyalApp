@@ -10,19 +10,19 @@ import { useSettingsStore } from '@/stores/settings';
 import { palette } from '@/theme';
 import { descargarArchivoAutenticado } from '@/utils/downloadFile';
 import { useRouter } from 'expo-router';
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { ScrollView, StyleSheet, View } from 'react-native';
 import {
-    ActivityIndicator,
-    Button,
-    Chip,
-    Divider,
-    Icon,
-    IconButton,
-    Searchbar,
-    Text,
-    TouchableRipple,
-    useTheme,
+  ActivityIndicator,
+  Button,
+  Chip,
+  Divider,
+  Icon,
+  IconButton,
+  Searchbar,
+  Text,
+  TouchableRipple,
+  useTheme,
 } from 'react-native-paper';
 
 const labels = {
@@ -332,11 +332,17 @@ export default function SolicitudesScreen() {
   const allowed = useRequirePermiso(OPCION.solicitudes);
   const [estado, setEstado] = useState('99');
   const [query, setQuery] = useState('');
+  const [debouncedQuery, setDebouncedQuery] = useState('');
   const [page, setPage] = useState(1);
   const [limit, setLimit] = useState(10);
 
+  useEffect(() => {
+    const id = setTimeout(() => { setDebouncedQuery(query.trim()); setPage(1); }, 500);
+    return () => clearTimeout(id);
+  }, [query]);
+
   const { canSee } = usePermisos();
-  const { data, isLoading, isError, error, refetch, isRefetching, isFetching } = useSolicitudes(estado, page, limit, canSee(OPCION.solicitudes));
+  const { data, isLoading, isError, error, refetch, isRefetching, isFetching } = useSolicitudes(estado, page, limit, canSee(OPCION.solicitudes), debouncedQuery);
   const logout = useLogout();
   const router = useRouter();
   const { colors, roundness } = useTheme();
@@ -345,17 +351,10 @@ export default function SolicitudesScreen() {
   const setLang = useSettingsStore((s) => s.setLang);
   const t = labels[lang];
 
-  const solicitudes = useMemo<SolicitudListItem[]>(() => {
-    const items = Array.isArray(data?.ListadoSolicitudes) ? data!.ListadoSolicitudes : [];
-    const q = query.trim().toLowerCase();
-    if (!q) return items;
-    return items.filter((s) =>
-      [s.NombreTitular, s.NumeroPoliza, s.DescripcionPlan, s.DescripcionPoliza, s.DescripcionPais]
-        .join(' ')
-        .toLowerCase()
-        .includes(q),
-    );
-  }, [data, query]);
+  const solicitudes = useMemo<SolicitudListItem[]>(
+    () => (Array.isArray(data?.ListadoSolicitudes) ? data!.ListadoSolicitudes : []),
+    [data],
+  );
   const meta = data?.Meta;
   const totalPages = Math.max(1, meta?.totalPages ?? 1);
   const totalGeneral = useMemo(
@@ -394,6 +393,7 @@ export default function SolicitudesScreen() {
       onCotizaciones={() => router.push('/cotizaciones' as any)}
       onSolicitudes={() => {}}
       onPolizas={() => router.push('/polizas' as any)}
+      onBack={() => (router.canGoBack() ? router.back() : router.push('/dashboard' as any))}
     >
       <View style={styles.header}>
         <View style={{ flex: 1, gap: 2 }}>

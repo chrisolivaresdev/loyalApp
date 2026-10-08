@@ -259,6 +259,7 @@ export default function AgentesScreen() {
       onSolicitudes={() => router.push('/solicitudes' as any)}
       onPolizas={() => router.push('/polizas' as any)}
       onAgentes={() => {}}
+      onBack={() => (router.canGoBack() ? router.back() : router.push('/dashboard' as any))}
     >
       <View style={styles.header}>
         <View style={{ flex: 1, gap: 2 }}>
