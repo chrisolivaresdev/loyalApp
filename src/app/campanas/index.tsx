@@ -1,24 +1,26 @@
 import { getCampanaExpress, PolizaCampanaExpress } from '@/api/agent';
 import { Campana, imagenUrl } from '@/api/imagenes';
 import { AppShell, Lang } from '@/components/AppShell';
+import { ImagenProtegida } from '@/components/ImagenProtegida';
 import { useLogout } from '@/hooks/useAuth';
 import { useCampanas } from '@/hooks/useImagenes';
+import { useResponsive } from '@/hooks/useResponsive';
 import { useAuthStore } from '@/stores/auth';
 import { useSettingsStore } from '@/stores/settings';
 import { palette } from '@/theme';
 import { useQuery } from '@tanstack/react-query';
 import { useRouter } from 'expo-router';
 import { useRef, useState } from 'react';
-import { Image, ScrollView, StyleSheet, View } from 'react-native';
+import { ScrollView, StyleSheet, View } from 'react-native';
 import {
-    ActivityIndicator,
-    Button,
-    Chip,
-    Icon,
-    IconButton,
-    Text,
-    TouchableRipple,
-    useTheme,
+  ActivityIndicator,
+  Button,
+  Chip,
+  Icon,
+  IconButton,
+  Text,
+  TouchableRipple,
+  useTheme,
 } from 'react-native-paper';
 
 const labels = {
@@ -80,10 +82,12 @@ function CampanaExpress({ t, lang }: { t: (typeof labels)['es']; lang: Lang }) {
 
 function Gallery({ campana, t }: { campana: Campana; t: (typeof labels)['es'] }) {
   const { colors, roundness } = useTheme();
+  const { isMobile } = useResponsive();
   const [index, setIndex] = useState(0);
   const thumbsRef = useRef<ScrollView>(null);
   const total = campana.fotos.length;
   const cur = campana.fotos[Math.min(index, total - 1)];
+  const navSize = isMobile ? 22 : 28;
 
   const go = (dir: 1 | -1) => {
     const next = (index + dir + total) % total;
@@ -93,17 +97,19 @@ function Gallery({ campana, t }: { campana: Campana; t: (typeof labels)['es'] })
 
   return (
     <View style={styles.gallery}>
-      <View style={[styles.viewer, { borderRadius: roundness + 4, borderColor: colors.outlineVariant }]}>
-        <Image
-          source={{ uri: imagenUrl(`${campana.carpeta}/${cur}`) }}
+      <View style={[styles.viewer, isMobile && styles.viewerMobile, { borderRadius: roundness + 4, borderColor: colors.outlineVariant }]}>
+        <ImagenProtegida
+          key={cur}
+          url={imagenUrl(`${campana.carpeta}/${cur}`)}
           style={styles.viewerImg}
           resizeMode="contain"
+          indicatorSize={36}
         />
         <View style={[styles.navBtn, styles.navLeft]}>
-          <IconButton icon="chevron-left" size={28} iconColor="#FFFFFF" onPress={() => go(-1)} style={{ margin: 0 }} />
+          <IconButton icon="chevron-left" size={navSize} iconColor="#FFFFFF" onPress={() => go(-1)} style={{ margin: 0 }} />
         </View>
         <View style={[styles.navBtn, styles.navRight]}>
-          <IconButton icon="chevron-right" size={28} iconColor="#FFFFFF" onPress={() => go(1)} style={{ margin: 0 }} />
+          <IconButton icon="chevron-right" size={navSize} iconColor="#FFFFFF" onPress={() => go(1)} style={{ margin: 0 }} />
         </View>
         <View style={styles.counter}>
           <Text variant="labelMedium" style={{ color: '#FFFFFF' }}>{t.photo} {index + 1} / {total}</Text>
@@ -125,8 +131,10 @@ function Gallery({ campana, t }: { campana: Campana; t: (typeof labels)['es'] })
       <ScrollView ref={thumbsRef} horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.thumbs}>
         {campana.fotos.map((f, i) => (
           <TouchableRipple key={f} onPress={() => setIndex(i)} borderless style={{ borderRadius: 10 }}>
-            <Image
-              source={{ uri: imagenUrl(`${campana.carpeta}/${f}`) }}
+            <ImagenProtegida
+              url={imagenUrl(`${campana.carpeta}/${f}`)}
+              resizeMode="cover"
+              indicatorSize={16}
               style={[
                 styles.thumb,
                 { borderColor: i === index ? palette.indigo[500] : colors.outlineVariant },
@@ -230,9 +238,10 @@ const styles = StyleSheet.create({
   card: { borderWidth: 1, padding: 16 },
   cardTitle: { marginBottom: 12 },
   gallery: { gap: 12 },
-  viewer: { width: '100%', aspectRatio: 16 / 9, maxHeight: 560, backgroundColor: '#0B0B0B', borderWidth: 1, justifyContent: 'center' },
-  viewerImg: { flex: 1, width: '100%' },
-  navBtn: { position: 'absolute', top: '45%', backgroundColor: 'rgba(0,0,0,0.35)', borderRadius: 999 },
+  viewer: { width: '100%', aspectRatio: 16 / 9, maxHeight: 560, backgroundColor: '#0B0B0B', borderWidth: 1, justifyContent: 'center', overflow: 'hidden' },
+  viewerMobile: { aspectRatio: 4 / 3 },
+  viewerImg: { width: '100%', height: '100%' },
+  navBtn: { position: 'absolute', top: '50%', marginTop: -20, backgroundColor: 'rgba(0,0,0,0.35)', borderRadius: 999 },
   navLeft: { left: 8 },
   navRight: { right: 8 },
   counter: { position: 'absolute', bottom: 10, right: 12, backgroundColor: 'rgba(0,0,0,0.5)', borderRadius: 12, paddingHorizontal: 10, paddingVertical: 4 },

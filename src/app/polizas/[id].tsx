@@ -162,12 +162,20 @@ const initials = (nombre = '') =>
 
 function InfoRow({ icon, label, value }: { icon: string; label: string; value?: string | number }) {
   const { colors } = useTheme();
+  const { isMobile } = useResponsive();
   if (value === undefined || value === null || value === '') return null;
+  const stacked = isMobile && !!label;
   return (
-    <View style={styles.infoRow}>
-      <Icon source={icon} size={16} color={colors.onSurfaceVariant} />
-      <Text variant="bodySmall" style={{ color: colors.onSurfaceVariant, width: 140 }}>{label}</Text>
-      <Text variant="bodyMedium" style={{ flex: 1 }} numberOfLines={2}>{value}</Text>
+    <View style={[styles.infoRow, stacked && { alignItems: 'flex-start' }, isMobile && styles.infoRowMobile, isMobile && { borderBottomColor: colors.outlineVariant }]}>
+      <View style={{ paddingTop: stacked ? 3 : 0 }}>
+        <Icon source={icon} size={16} color={colors.onSurfaceVariant} />
+      </View>
+      <View style={[styles.infoBody, !stacked && styles.infoBodyRow]}>
+        {!!label && (
+          <Text variant={stacked ? 'labelSmall' : 'bodySmall'} style={[{ color: colors.onSurfaceVariant }, stacked && styles.infoLabelMobile, !stacked && { width: 140 }]}>{label}</Text>
+        )}
+        <Text variant="bodyMedium" style={{ flex: stacked ? undefined : 1, flexShrink: 1 }} numberOfLines={3}>{value}</Text>
+      </View>
     </View>
   );
 }
@@ -177,6 +185,7 @@ function CuotaRow({ cuota, codigoCertificado, t, lang, busy, onDoc }: {
   onDoc: (tipo: 'coverage' | 'cards' | 'policy' | 'recibo', cuota: Cuota, key: string) => void;
 }) {
   const { colors, roundness } = useTheme();
+  const { isMobile } = useResponsive();
   const pendiente = String(cuota.DescripcionEstadoCuota ?? '').toLowerCase() === 'pendiente';
   const pagada = !!cuota.FechaPago;
   const c = estadoColor(pagada ? 'pagada' : cuota.DescripcionEstadoCuota);
@@ -186,37 +195,45 @@ function CuotaRow({ cuota, codigoCertificado, t, lang, busy, onDoc }: {
     { key: 'policy' as const, icon: 'file-certificate-outline', color: palette.indigo[500], label: t.policyCert },
     { key: 'recibo' as const, icon: 'receipt-text-outline', color: palette.warning, label: t.receipt },
   ];
+  const actions = (
+    <View style={[styles.cuotaActions, isMobile && styles.cuotaActionsMobile, isMobile && { borderTopColor: colors.outlineVariant }]}>
+      {docs.map((d) => {
+        const key = `doc-${cuota.CodigoCronogramaPagos}-${d.key}`;
+        return (
+          <Tooltip key={d.key} title={d.label}>
+            <IconButton
+              icon={busy === key ? 'loading' : d.icon}
+              iconColor={d.color}
+              size={20}
+              style={{ margin: 0 }}
+              disabled={pendiente || !!busy}
+              onPress={() => onDoc(d.key, cuota, key)}
+            />
+          </Tooltip>
+        );
+      })}
+    </View>
+  );
   return (
-    <View style={[styles.cuotaRow, { borderColor: colors.outlineVariant, borderRadius: roundness - 2 }]}>
-      <View style={[styles.cuotaNum, { backgroundColor: c }]}>
-        <Text variant="labelMedium" style={{ color: '#FFF' }}>#{cuota.NumeroCuota}</Text>
-      </View>
-      <View style={{ flex: 1, gap: 1 }}>
-        <Text variant="titleSmall">{fmtMoney(cuota.ValorCuota)}</Text>
-        <Text variant="bodySmall" style={{ color: colors.onSurfaceVariant }}>
-          {t.dueDate}: {fmtDate(cuota.FechaCobro, lang)}{pagada ? ` · ${t.paidDate}: ${fmtDate(cuota.FechaPago, lang)}` : ''}
-        </Text>
-        <View style={[styles.miniChip, { backgroundColor: c, alignSelf: 'flex-start' }]}>
-          <Text variant="labelSmall" style={{ color: '#FFF' }}>{cuota.DescripcionEstadoCuota}</Text>
+    <View style={[styles.cuotaRow, isMobile && styles.cuotaRowMobile, { borderColor: colors.outlineVariant, borderRadius: roundness - 2 }]}>
+      <View style={[styles.cuotaMain, !isMobile && { flex: 1 }]}>
+        <View style={[styles.cuotaNum, { backgroundColor: c }]}>
+          <Text variant="labelMedium" style={{ color: '#FFF' }}>#{cuota.NumeroCuota}</Text>
         </View>
+        <View style={{ flex: 1, gap: 2, minWidth: 0 }}>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+            <Text variant="titleSmall">{fmtMoney(cuota.ValorCuota)}</Text>
+            <View style={[styles.miniChip, { backgroundColor: c }]}>
+              <Text variant="labelSmall" style={{ color: '#FFF' }} numberOfLines={1}>{cuota.DescripcionEstadoCuota}</Text>
+            </View>
+          </View>
+          <Text variant="bodySmall" style={{ color: colors.onSurfaceVariant }}>
+            {t.dueDate}: {fmtDate(cuota.FechaCobro, lang)}{pagada ? ` · ${t.paidDate}: ${fmtDate(cuota.FechaPago, lang)}` : ''}
+          </Text>
+        </View>
+        {!isMobile && actions}
       </View>
-      <View style={styles.cuotaActions}>
-        {docs.map((d) => {
-          const key = `doc-${cuota.CodigoCronogramaPagos}-${d.key}`;
-          return (
-            <Tooltip key={d.key} title={d.label}>
-              <IconButton
-                icon={busy === key ? 'loading' : d.icon}
-                iconColor={d.color}
-                size={20}
-                style={{ margin: 0 }}
-                disabled={pendiente || !!busy}
-                onPress={() => onDoc(d.key, cuota, key)}
-              />
-            </Tooltip>
-          );
-        })}
-      </View>
+      {isMobile && actions}
     </View>
   );
 }
@@ -236,7 +253,7 @@ export default function PolizaDetalleScreen() {
   const router = useRouter();
   const logout = useLogout();
   const { colors, roundness } = useTheme();
-  const { isDesktop } = useResponsive();
+  const { isDesktop, isMobile } = useResponsive();
   const t = labels[lang];
 
   const [editPersona, setEditPersona] = useState<number | null>(null);
@@ -356,19 +373,21 @@ export default function PolizaDetalleScreen() {
     ].filter(Boolean);
     const conRestricciones = aceptado && String(a.IndicadorRestricciones) === '1';
     return (
-      <View key={a.CodigoPersonaSolicitud} style={[styles.asegCard, { backgroundColor: colors.surface, borderColor: colors.outlineVariant, borderRadius: roundness + 2 }]}>
+      <View key={a.CodigoPersonaSolicitud} style={[styles.asegCard, isMobile && { padding: 12 }, { backgroundColor: colors.surface, borderColor: colors.outlineVariant, borderRadius: roundness + 2 }]}>
         <View style={styles.asegHeader}>
           <View style={[styles.avatar, { backgroundColor: palette.indigo[500] }]}>
             <Text variant="labelLarge" style={{ color: '#FFF' }}>{initials(a.NombreCompleto)}</Text>
           </View>
-          <View style={{ flex: 1, gap: 1 }}>
-            <Text variant="titleMedium" numberOfLines={1}>{a.NombreCompleto}</Text>
-            <Text variant="bodySmall" style={{ color: colors.onSurfaceVariant }} numberOfLines={1}>
-              {a.DescripcionTipoPersonaCotizacion}{a.DescripcionVinculo ? ` · ${a.DescripcionVinculo}` : ''}
-            </Text>
-          </View>
-          <View style={[styles.miniChip, { backgroundColor: estadoColor(a.DescripcionEstadoPersonaSolicitud) }]}>
-            <Text variant="labelSmall" style={{ color: '#FFF' }}>{a.DescripcionEstadoPersonaSolicitud}</Text>
+          <View style={{ flex: 1, gap: 3, minWidth: 0 }}>
+            <Text variant="titleMedium" numberOfLines={2}>{a.NombreCompleto}</Text>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
+              <Text variant="bodySmall" style={{ color: colors.onSurfaceVariant, flexShrink: 1 }} numberOfLines={1}>
+                {a.DescripcionTipoPersonaCotizacion}{a.DescripcionVinculo ? ` · ${a.DescripcionVinculo}` : ''}
+              </Text>
+              <View style={[styles.miniChip, { backgroundColor: estadoColor(a.DescripcionEstadoPersonaSolicitud) }]}>
+                <Text variant="labelSmall" style={{ color: '#FFF' }} numberOfLines={1}>{a.DescripcionEstadoPersonaSolicitud}</Text>
+              </View>
+            </View>
           </View>
           {canExecute(OPCION.consultarPoliza) && (
             <IconButton icon="pencil-outline" size={18} onPress={() => setEditPersona(a.CodigoPersona)} style={{ margin: 0 }} />
@@ -378,14 +397,14 @@ export default function PolizaDetalleScreen() {
         <Divider style={{ marginVertical: 10 }} />
 
         <View style={[styles.asegGrid, !isDesktop && { flexDirection: 'column' }]}>
-          <View style={{ flex: 1, gap: 6 }}>
-            <InfoRow icon="cake-variant-outline" label={fmtDate(a.FechaNacimiento, lang)} value={`${a.Edad} ${t.years} · ${a.Sexo === 'M' ? t.male : a.Sexo === 'F' ? t.female : a.Sexo}`} />
+          <View style={{ flex: isDesktop ? 1 : undefined, gap: 6, minWidth: 0 }}>
+            <InfoRow icon="cake-variant-outline" label="" value={`${fmtDate(a.FechaNacimiento, lang)} · ${a.Edad} ${t.years} · ${a.Sexo === 'M' ? t.male : a.Sexo === 'F' ? t.female : a.Sexo}`} />
             {!!a.Correo && <InfoRow icon="email-outline" label="" value={a.Correo} />}
             {!!a.Celular && <InfoRow icon="cellphone" label="" value={a.Celular} />}
             {!!a.DireccionPrincipal && <InfoRow icon="map-marker-outline" label="" value={`${a.DireccionPrincipal} ${a.DescripcionPaisPrincipal ?? ''}`} />}
             {!!a.FechaInicioVigencia && <InfoRow icon="calendar-outline" label={t.effectiveDate} value={fmtDate(a.FechaInicioVigencia, lang)} />}
           </View>
-          <View style={{ flex: 1, gap: 6 }}>
+          <View style={{ flex: isDesktop ? 1 : undefined, gap: 6, minWidth: 0 }}>
             <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
               <Icon source={conRestricciones ? 'shield-alert-outline' : 'shield-check-outline'} size={16} color={conRestricciones ? palette.warning : palette.success} />
               <Text variant="bodyMedium" style={{ fontFamily: 'Inter_600SemiBold' }}>
@@ -436,8 +455,8 @@ export default function PolizaDetalleScreen() {
     return (
       <>
         {/* Hero banner */}
-        <View style={[styles.banner, { backgroundColor: cert.ColorPrincipal || palette.indigo[600], borderRadius: roundness + 2 }]}>
-          <View style={{ flex: 1, gap: 4 }}>
+        <View style={[styles.banner, isMobile && styles.bannerMobile, { backgroundColor: cert.ColorPrincipal || palette.indigo[600], borderRadius: roundness + 2 }]}>
+          <View style={{ flex: 1, gap: 4, minWidth: 0 }}>
             <Text variant="bodySmall" style={{ color: 'rgba(255,255,255,0.75)', letterSpacing: 1 }}>
               {cert.NumeroPoliza}
             </Text>
@@ -455,7 +474,7 @@ export default function PolizaDetalleScreen() {
               </View>
             </View>
           </View>
-          <Icon source="shield-check" size={52} color="rgba(255,255,255,0.25)" />
+          {!isMobile && <Icon source="shield-check" size={52} color="rgba(255,255,255,0.25)" />}
         </View>
 
         {/* Acciones */}
@@ -469,7 +488,7 @@ export default function PolizaDetalleScreen() {
                 onPress={a.onPress}
                 disabled={!canExecute(a.opcion) || !!busy}
                 compact
-                style={{ borderRadius: roundness - 2 }}
+                style={[{ borderRadius: roundness - 2 }, isMobile && styles.actionBtnMobile]}
               >
                 {a.label}
               </Button>
@@ -478,8 +497,8 @@ export default function PolizaDetalleScreen() {
         )}
 
         {/* Datos póliza + cobranza */}
-        <View style={[styles.twoCol, !isDesktop && { flexDirection: 'column' }]}>
-          <View style={[styles.panel, { backgroundColor: colors.surface, borderColor: colors.outlineVariant, borderRadius: roundness + 2 }]}>
+        <View style={[styles.twoCol, !isDesktop && styles.twoColStacked]}>
+          <View style={[styles.panel, isDesktop && { flex: 1 }, !isDesktop && styles.panelStacked, isMobile && styles.panelMobile, { backgroundColor: colors.surface, borderColor: colors.outlineVariant, borderRadius: roundness + 2 }]}>
             <View style={styles.panelHeader}>
               <Icon source="file-document-outline" size={18} color={palette.indigo[500]} />
               <Text variant="titleMedium" style={{ fontFamily: 'Inter_600SemiBold' }}>{t.policyData}</Text>
@@ -515,12 +534,12 @@ export default function PolizaDetalleScreen() {
               {pagoEnProceso && <Chip compact icon="clock-alert-outline" style={{ backgroundColor: '#FEF3C7' }}>{t.paymentInProcess}</Chip>}
             </View>
 
-            <Button mode="outlined" icon="folder-open-outline" onPress={() => setDocsOpen(true)} compact style={{ alignSelf: 'flex-start', marginTop: 10, borderRadius: roundness - 4 }}>
+            <Button mode="outlined" icon="folder-open-outline" onPress={() => setDocsOpen(true)} compact style={[{ marginTop: 10, borderRadius: roundness - 4 }, isMobile ? { alignSelf: 'stretch' } : { alignSelf: 'flex-start' }]}>
               {t.docsBtn} ({data.documentos.length})
             </Button>
           </View>
 
-          <View style={[styles.panel, { backgroundColor: colors.surface, borderColor: colors.outlineVariant, borderRadius: roundness + 2 }]}>
+          <View style={[styles.panel, isDesktop && { flex: 1 }, !isDesktop && styles.panelStacked, isMobile && styles.panelMobile, { backgroundColor: colors.surface, borderColor: colors.outlineVariant, borderRadius: roundness + 2 }]}>
             <View style={styles.panelHeader}>
               <Icon source="cash-multiple" size={18} color={palette.indigo[500]} />
               <Text variant="titleMedium" style={{ fontFamily: 'Inter_600SemiBold' }}>{t.billingData}</Text>
@@ -579,9 +598,11 @@ export default function PolizaDetalleScreen() {
       onPersonal={() => router.push('/personal' as any)}
       onBack={() => (router.canGoBack() ? router.back() : router.replace('/polizas' as any))}
     >
-      <View style={styles.headerRow}>
-        <Text variant="headlineSmall" style={{ flex: 1 }}>{t.title}</Text>
-      </View>
+      {!isMobile && (
+        <View style={styles.headerRow}>
+          <Text variant="headlineSmall" style={{ flex: 1 }}>{t.title}</Text>
+        </View>
+      )}
 
       {renderBody()}
 
@@ -879,17 +900,31 @@ const styles = StyleSheet.create({
   centered: { alignItems: 'center', justifyContent: 'center', paddingVertical: 64, gap: 4 },
   emptySection: { alignItems: 'center', justifyContent: 'center', paddingVertical: 20, gap: 6 },
   banner: { padding: 20, flexDirection: 'row', alignItems: 'center', gap: 12 },
-  bannerChip: { borderRadius: 999, paddingHorizontal: 10, paddingVertical: 4 },
+  bannerMobile: { padding: 16 },
+  bannerChip: { borderRadius: 999, paddingHorizontal: 10, paddingVertical: 4, flexShrink: 1 },
   actions: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
   twoCol: { flexDirection: 'row', gap: 12, alignItems: 'flex-start' },
-  panel: { flex: 1, borderWidth: 1, padding: 16, minWidth: 0 },
+  twoColStacked: { flexDirection: 'column', alignItems: 'stretch' },
+  panel: { borderWidth: 1, padding: 16, minWidth: 0 },
+  // Sin flex: en un contenedor columna, flexBasis 0 colapsa la altura en web
+  // y los hijos se pintan unos encima de otros.
+  panelStacked: { width: '100%' },
+  panelMobile: { padding: 12 },
+  actionBtnMobile: { flexGrow: 1, flexBasis: '45%' },
   panelHeader: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   primaBox: { padding: 12, gap: 2 },
   infoRow: { flexDirection: 'row', alignItems: 'center', gap: 8, paddingVertical: 3 },
+  infoRowMobile: { paddingVertical: 8, borderBottomWidth: StyleSheet.hairlineWidth },
+  infoBody: { flex: 1, minWidth: 0, gap: 1 },
+  infoBodyRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  infoLabelMobile: { textTransform: 'uppercase', letterSpacing: 0.4 },
   cuotaRow: { flexDirection: 'row', alignItems: 'center', borderWidth: 1, padding: 10, gap: 10 },
+  cuotaRowMobile: { flexDirection: 'column', alignItems: 'stretch', gap: 8 },
+  cuotaMain: { flexDirection: 'row', alignItems: 'center', gap: 10, minWidth: 0 },
   cuotaNum: { width: 34, height: 34, borderRadius: 8, alignItems: 'center', justifyContent: 'center' },
   cuotaActions: { flexDirection: 'row', alignItems: 'center', gap: 2 },
-  miniChip: { borderRadius: 999, paddingHorizontal: 8, paddingVertical: 3 },
+  cuotaActionsMobile: { justifyContent: 'space-around', borderTopWidth: 1, paddingTop: 6 },
+  miniChip: { borderRadius: 999, paddingHorizontal: 8, paddingVertical: 3, flexShrink: 1 },
   asegCard: { borderWidth: 1, padding: 14 },
   asegHeader: { flexDirection: 'row', alignItems: 'center', gap: 10 },
   avatar: { width: 40, height: 40, borderRadius: 20, alignItems: 'center', justifyContent: 'center' },

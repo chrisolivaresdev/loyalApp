@@ -176,13 +176,18 @@ const PIE_COLORS = { activas: '#219653', pendientePago: '#828282', periodoGracia
 
 function InfoRow({ icon, label, value }: { icon: string; label: string; value: string }) {
   const { colors } = useTheme();
+  const { isMobile } = useResponsive();
   return (
-    <View style={styles.infoRow}>
-      <Icon source={icon} size={16} color={colors.onSurfaceVariant} />
-      <Text variant="bodySmall" style={{ color: colors.onSurfaceVariant, width: 118 }}>{label}</Text>
-      <Text variant="bodySmall" style={{ flex: 1, fontFamily: 'Inter_500Medium' }} numberOfLines={2}>
-        {value?.trim() ? value.trim() : '—'}
-      </Text>
+    <View style={[styles.infoRow, isMobile && styles.infoRowMobile, isMobile && { borderBottomColor: colors.outlineVariant }]}>
+      <View style={{ paddingTop: isMobile ? 3 : 2 }}>
+        <Icon source={icon} size={16} color={colors.onSurfaceVariant} />
+      </View>
+      <View style={[styles.infoBody, !isMobile && styles.infoBodyRow]}>
+        <Text variant={isMobile ? 'labelSmall' : 'bodySmall'} style={[{ color: colors.onSurfaceVariant }, isMobile && styles.infoLabelMobile, !isMobile && { width: 118 }]}>{label}</Text>
+        <Text variant="bodySmall" style={{ flex: isMobile ? undefined : 1, flexShrink: 1, fontFamily: 'Inter_500Medium' }} numberOfLines={3}>
+          {value?.trim() ? value.trim() : '—'}
+        </Text>
+      </View>
     </View>
   );
 }
@@ -309,7 +314,7 @@ export default function PerfilAgenteScreen() {
         <View style={[styles.profileRow, !isDesktop && styles.profileCol]}>
           {/* Columna izquierda: datos del agente */}
           {/* flexBasis:'auto' en mobile: 'undefined' no anula el flexBasis del StyleSheet base */}
-          <View style={[styles.leftCol, { flex: isDesktop ? 1 : 0, minWidth: isDesktop ? 300 : 0, flexBasis: isDesktop ? 300 : 'auto', width: isDesktop ? undefined : '100%' }]}>
+          <View style={[styles.leftCol, { flex: isDesktop ? 1 : undefined, minWidth: isDesktop ? 300 : 0, flexBasis: isDesktop ? 300 : 'auto', width: isDesktop ? undefined : '100%' }]}>
             <SectionCard title={t.contact} icon="account-outline">
               <View style={styles.agentHead}>
                 <Avatar.Text
@@ -352,7 +357,7 @@ export default function PerfilAgenteScreen() {
           </View>
 
           {/* Columna derecha: cartera y gráficos */}
-          <View style={[styles.rightCol, { flex: isDesktop ? 1.6 : 0, minWidth: isDesktop ? 340 : 0, flexBasis: isDesktop ? 420 : 'auto', width: isDesktop ? undefined : '100%' }]}>
+          <View style={[styles.rightCol, { flex: isDesktop ? 1.6 : undefined, minWidth: isDesktop ? 340 : 0, flexBasis: isDesktop ? 420 : 'auto', width: isDesktop ? undefined : '100%' }]}>
             <View style={[styles.carteraCard, { backgroundColor: palette.indigo[500], borderRadius: roundness + 2 }]}>
               <Text variant="labelLarge" style={{ color: 'rgba(255,255,255,0.85)' }}>
                 {t.portfolio} · {agente.descripcionTipoAgente}
@@ -538,6 +543,10 @@ const styles = StyleSheet.create({
   cardHeader: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   agentHead: { flexDirection: 'row', alignItems: 'center', gap: 12, marginBottom: 4 },
   infoRow: { flexDirection: 'row', alignItems: 'flex-start', gap: 8, paddingVertical: 3 },
+  infoRowMobile: { paddingVertical: 8, borderBottomWidth: StyleSheet.hairlineWidth },
+  infoBody: { flex: 1, minWidth: 0, gap: 1 },
+  infoBodyRow: { flexDirection: 'row', alignItems: 'flex-start', gap: 8 },
+  infoLabelMobile: { textTransform: 'uppercase', letterSpacing: 0.4 },
   carteraCard: { padding: 18, alignItems: 'center', gap: 2 },
   prodRow2: { flexDirection: 'row', gap: 16, flexWrap: 'wrap' },
   prodHalf: { flex: 1, minWidth: 220 },

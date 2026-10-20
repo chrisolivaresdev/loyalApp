@@ -126,11 +126,13 @@ export default function LoginScreen() {
     <View style={styles.formWrap}>
       {!isDesktop && (
         <View style={styles.mobileBrand}>
-          <View style={styles.logo}>
-            <Icon source="shield-check" size={28} color={palette.navy[900]} />
-          </View>
-          <Text variant="headlineSmall" style={{ color: '#FFFFFF' }}>{t.brand}</Text>
-          <Text variant="bodyMedium" style={{ color: palette.navy[200] }}>{t.company}</Text>
+          <Image
+            source={require('../../assets/images/logo-loyal-blanco.png')}
+            style={{ height: 56, width: 170 }}
+            resizeMode="contain"
+            accessibilityLabel="Loyal Major Medical"
+          />
+          <Text variant="bodyMedium" style={{ color: palette.navy[200] }}>{t.brand}</Text>
         </View>
       )}
 
@@ -260,7 +262,6 @@ const styles = StyleSheet.create({
   desktopForm: { flex: 1, justifyContent: 'center', padding: 48 },
   brandPanel: { flex: 1.1, padding: 56, justifyContent: 'space-between' },
   brandTop: { flexDirection: 'row', alignItems: 'center', gap: 12 },
-  logo: { width: 48, height: 48, borderRadius: 14, backgroundColor: palette.gold[500], alignItems: 'center', justifyContent: 'center' },
   highlight: { flexDirection: 'row', alignItems: 'center', gap: 12 },
   highlightIcon: { width: 36, height: 36, borderRadius: 10, backgroundColor: 'rgba(255,255,255,0.08)', alignItems: 'center', justifyContent: 'center' },
   mobileScroll: { flexGrow: 1, justifyContent: 'center', padding: 20 },
