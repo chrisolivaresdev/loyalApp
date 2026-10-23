@@ -10,14 +10,14 @@ import { usePathname, useRouter } from 'expo-router';
 import { ReactNode, useState } from 'react';
 import { Image, KeyboardAvoidingView, Platform, ScrollView, StyleSheet, View } from 'react-native';
 import {
-    Avatar,
-    Divider,
-    Icon,
-    IconButton,
-    Menu,
-    Text,
-    TouchableRipple,
-    useTheme
+  Avatar,
+  Divider,
+  Icon,
+  IconButton,
+  Menu,
+  Text,
+  TouchableRipple,
+  useTheme
 } from 'react-native-paper';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
@@ -186,13 +186,14 @@ function translateRole(role: string | undefined, lang: Lang) {
   return map[key]?.[lang] ?? role.trim();
 }
 
-function Brand({ compact = false, light = true, lang = 'es' }: { compact?: boolean; light?: boolean; lang?: Lang }) {
+function Brand({ compact = false, light = true, lang = 'es', size = 44 }: { compact?: boolean; light?: boolean; lang?: Lang; size?: number }) {
   const fg = light ? '#FFFFFF' : palette.indigo[800];
   return (
     <View style={styles.brand}>
       <Image
         source={require('../../assets/images/logo-loyal-blanco.png')}
-        style={{ height: 44, width: compact ? 44 : 150 }}
+        // El PNG es 100x72: en compact se respeta esa proporción para que no se vea achatado
+        style={compact ? { height: size, width: Math.round(size * 100 / 72) } : { height: 44, width: 150 }}
         resizeMode="contain"
         accessibilityLabel="Loyal Major Medical"
       />
@@ -577,7 +578,7 @@ function MobileShell({
                 style={{ marginLeft: -12 }}
               />
             )}
-            <Brand compact lang={activeLang} />
+            <Brand compact lang={activeLang} size={72} />
           </View>
           <View style={styles.mobileActions}>
             <MobileNavMenu onHome={onHome} onCotizaciones={onCotizaciones} onSolicitudes={onSolicitudes} onPolizas={onPolizas} onComisiones={onComisiones} onPersonal={onPersonal} onAgentes={onAgentes} onRecursos={onRecursos} onProfile={onProfile} onLogout={onLogout} labels={labels} lang={lang} />

@@ -94,6 +94,7 @@ const labels = {
     productRequired: 'Seleccioná al menos un producto',
     approve: 'Aprobar cotización',
     edit: 'Editar',
+    compare: 'Comparar planes',
     approveTitle: 'Aprobar cotización',
     selectProduct: 'Selecciona producto',
     selectPlan: 'Selecciona plan',
@@ -166,6 +167,7 @@ const labels = {
     productRequired: 'Select at least one product',
     approve: 'Approve quote',
     edit: 'Edit',
+    compare: 'Compare plans',
     approveTitle: 'Approve quote',
     selectProduct: 'Select product',
     selectPlan: 'Select plan',
@@ -238,6 +240,7 @@ const labels = {
     productRequired: 'Selecione pelo menos um produto',
     approve: 'Aprovar cotação',
     edit: 'Editar',
+    compare: 'Comparar planos',
     approveTitle: 'Aprovar cotação',
     selectProduct: 'Selecionar produto',
     selectPlan: 'Selecionar plano',
@@ -525,6 +528,17 @@ export default function CotizacionDetalleScreen() {
             style={{ borderRadius: roundness - 4 }}
           >
             {t.approve}
+          </Button>
+        )}
+        {!!data && (
+          <Button
+            mode="outlined"
+            icon="scale-balance"
+            compact
+            onPress={() => router.push(`/cotizaciones/comparar?id=${codigo}` as any)}
+            style={{ borderRadius: roundness - 4 }}
+          >
+            {t.compare}
           </Button>
         )}
         {!!data && (

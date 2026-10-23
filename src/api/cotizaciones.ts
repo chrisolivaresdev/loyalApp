@@ -41,8 +41,20 @@ export interface PrimaConsulta {
   Cobertura: string;
   TipoPersona: string;
   FormaPago: string;
+  CodigoPlan?: number;
+  DescripcionPlan?: string;
   Opcion1: string;
-  Opcion2: string;
+  Opcion2: string | number;
+}
+
+export interface OpcionPlan {
+  CodigoPoliza: number;
+  CodigoPlan: number;
+  DescripcionPlan: string;
+  Orden: number;
+  RangoHistorico: number;
+  DeducibleFuera: number | null;
+  DeducibleDentro: number | null;
 }
 
 export interface VariableGlobal {
@@ -91,6 +103,7 @@ export interface CotizacionDetalle {
   ListaPrimasTrimestralEssential: PrimaConsulta[];
   ListaPrimasMensualEssential: PrimaConsulta[];
   ListaPolizas: { CodigoPoliza: number; DescripcionPoliza: string }[];
+  ListaOpcionesPlanes?: OpcionPlan[];
 }
 
 function unwrapList(payload: any): any[] {
